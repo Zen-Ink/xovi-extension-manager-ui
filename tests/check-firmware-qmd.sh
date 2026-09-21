@@ -31,7 +31,8 @@ affected = ("qml/device/view/settings/Settings.qml",
             "qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml",
             "qt/qml/xofm/modules/settings/qml/quicksettings/AirplaneToggle.qml",
             "qt/qml/xofm/modules/screenshare/qml/ScreenShareToggle.qml",
-            "qt/qml/xofm/modules/orientationsensor/qml/LockOrientationToggle.qml")
+            "qt/qml/xofm/modules/orientationsensor/qml/LockOrientationToggle.qml",
+            "qml/device/view/settings/LanguageAndKeyboard.qml")
 
 for version, qmd_name, label_guard in cases:
     source = workspace / "xochitl_rcc" / ("rcc_" + version)
@@ -43,6 +44,9 @@ for version, qmd_name, label_guard in cases:
             generated = output / relative
             assert generated.is_file(), f"{version}: missing patched {relative}"
             subprocess.run([qmlformat, str(generated)], check=True, stdout=subprocess.DEVNULL)
+        language = (output / "qml/device/view/settings/LanguageAndKeyboard.qml").read_text()
+        assert "root.languageSettings.languageCode" in language
+        assert "onNativeLanguageChanged: ManagerNavigation.setNativeLanguage(nativeLanguage)" in language
         settings = (output / affected[0]).read_text()
         assert 'ManagerNavigation.registerSettingsHost(xoviManagerLoader)' in settings
         assert 'xoviManagerLoader.openEntry(owner, page, source)' in settings

@@ -516,10 +516,15 @@ int main(int argc,char **argv) {
     XoviI18n::attach(&engine,"epub-preloader");
     page["baseUrl"]="qrc:/xovi/epub-preloader/Settings.qml";
     QFile epubPage(QString::fromLocal8Bit(argv[1])+"/epub-preloader/Settings.qml");
-    check(epubPage.open(QIODevice::ReadOnly),"read actual EPUB settings page");
-    page["source"]=QString::fromUtf8(epubPage.readAll());
+    if (epubPage.exists()) {
+        check(epubPage.open(QIODevice::ReadOnly),"read actual EPUB settings page");
+        page["source"]=QString::fromUtf8(epubPage.readAll());
+    } else {
+        std::fprintf(stderr,"SKIP actual EPUB page integration: optional plugin absent; test lifecycle with a fixture\n");
+        page["source"]="import QtQuick; Item { required property var settingsContext }";
+    }
     manager->setProperty("selectedPage",page);settle(navigationHost);
-    check(navigationHost->state()=="ready","actual EPUB settings page loads before close");
+    check(navigationHost->state()=="ready","external settings page loads before close");
     // A later global translator can shadow generic Manager context keys.
     class ForeignTranslator : public QTranslator {
         QString translate(const char *context,const char *source,const char *,int) const override {
@@ -589,5 +594,27 @@ int main(int argc,char **argv) {
     check(!managerItem->isVisible(),"closing a shortcut-launched page returns to its caller without showing manager inventory");
     QObject::disconnect(connection);
     QObject::disconnect(apiConnection);
+    // Mirror the firmware adapter's property binding and signal, not a config-file write.
+    QQmlComponent languageAdapter(&engine);
+    languageAdapter.setData(R"(import QtQuick
+import org.xovi.Manager 1.0
+Item {
+    id: root
+    property QtObject languageSettings: QtObject { property string languageCode: "en" }
+    QtObject {
+        property string nativeLanguage: root.languageSettings ? root.languageSettings.languageCode : ""
+        onNativeLanguageChanged: ManagerNavigation.setNativeLanguage(nativeLanguage)
+        Component.onCompleted: ManagerNavigation.setNativeLanguage(nativeLanguage)
+    }
+})",QUrl("qrc:/test/LanguageAdapter.qml"));
+    QScopedPointer<QObject> adapter(languageAdapter.create());
+    check(bool(adapter),"native language adapter creates successfully");
+    auto *languageModel=adapter->property("languageSettings").value<QObject *>();
+    ManagerBridge liveLanguageBridge;
+    for(const auto &language:QStringList{"zh_CN","zh_TW","en"}) {
+        languageModel->setProperty("languageCode",language);
+        for(int i=0;i<10;++i) { QCoreApplication::processEvents(); QThread::msleep(2); }
+        check(liveLanguageBridge.uiLanguage()==language,"native model change reaches manager without persisting configuration");
+    }
     managerItem->setParentItem(nullptr);
 }

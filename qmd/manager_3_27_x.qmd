@@ -370,3 +370,17 @@ AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
         INSERT { visible: !item || item.xoviShortcutEnabled !== false }
     END TRAVERSE
 END AFFECT
+
+AFFECT /qml/device/view/settings/LanguageAndKeyboard.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE DeviceKeyboardNavigationHandler#root
+        LOCATE AFTER ALL
+        INSERT {
+            QtObject {
+                property string nativeLanguage: root.languageSettings ? root.languageSettings.languageCode : ""
+                onNativeLanguageChanged: ManagerNavigation.setNativeLanguage(nativeLanguage)
+                Component.onCompleted: ManagerNavigation.setNativeLanguage(nativeLanguage)
+            }
+        }
+    END TRAVERSE
+END AFFECT

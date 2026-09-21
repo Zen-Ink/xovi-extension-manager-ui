@@ -45,3 +45,17 @@ provide defaults rather than fork layout or behavior. Plugins need neither
 shared controls nor translation helpers merely to register/open settings. Future
 visual consolidation should be validated separately on supported firmware; this
 error-handling change does not redesign existing controls.
+
+## Runtime language synchronization
+
+Both firmware adapters observe `LanguageAndKeyboard.languageSettings.languageCode`
+and pass its initial value and subsequent changes to `ManagerNavigation.setNativeLanguage`.
+This updates the session's `xoviNativeUiLanguage` property; the SDK language service
+reloads registered catalogs and retranslates attached engines. No settings page
+recreation, config-file write or xochitl restart is required. The last observed
+native value remains authoritative after the native settings page closes.
+
+The configuration file is the startup fallback, not the live authority. Newly
+opened plugin engines cannot reset the session language to their default English.
+Consumers of the header-only helper must be rebuilt with the updated SDK; this
+does not translate plugins that use their own unrelated localization mechanism.

@@ -100,6 +100,11 @@ extern "C" char *xem_open_settings(const char *request) {
         return navigationReply(uiFailure("invalid-request"));
     return navigationReply(requestSettings(args.value("ownerId").toString(),args.value("pageId").toString("main")));
 }
+void ManagerNavigation::setNativeLanguage(const QString &language) {
+    if(language.trimmed().isEmpty()) return;
+    auto *app=QCoreApplication::instance();
+    if(app) app->setProperty("xoviNativeUiLanguage",language);
+}
 ManagerNavigation *ManagerNavigation::shared() {
     static auto *navigation=new ManagerNavigation(QCoreApplication::instance());
     return navigation;
