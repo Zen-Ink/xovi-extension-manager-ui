@@ -1,0 +1,9 @@
+/build/
+/manifest.json
+/Makefile
+
+/xovi.cpp
+/xovi.h
+*.so
+*.o
+.history/

@@ -1,0 +1,6 @@
+[submodule "sdk"]
+	path = sdk
+	url = https://github.com/Zen-Ink/xovi-extension-manager-sdk.git
+[submodule "xovi"]
+	path = xovi
+	url = https://github.com/Zen-Ink/xovi.git

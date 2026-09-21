@@ -1,0 +1,11 @@
+module org.xovi.Manager.Controls
+EButton 1.0 EButton.qml
+ELabel 1.0 ELabel.qml
+Pager 1.0 Pager.qml
+singleton NotificationStore 1.0 NotificationStore.qml
+NotificationProgress 1.0 NotificationProgress.qml
+singleton Typography 1.0 Typography.qml
+ButtonBase 1.0 ButtonBase.qml
+NavigationItem 1.0 NavigationItem.qml
+
+SettingsSidebarItem 1.0 SettingsSidebarItem.qml

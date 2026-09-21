@@ -1,0 +1,372 @@
+VERSION 3.28.x.x
+AFFECT /qml/device/view/settings/Settings.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE Item#root
+        LOCATE AFTER ALL
+        INSERT {
+            Loader {
+                id: xoviManagerLoader
+                anchors.fill: parent
+                z: 1000
+                active: false
+                source: "qrc:/xovi/manager/Manager.qml"
+                Component.onCompleted: ManagerNavigation.registerSettingsHost(xoviManagerLoader)
+                property string ownerId: "xovi-extension-manager"
+                property string pageId: "inventory"
+                property string entryPoint: "settings"
+                property var directPage: null
+                function present() {
+                    item.systemNavigator = root.windowNavigator
+                    item.initialOwner = ownerId
+                    item.entryPoint = entryPoint
+                    item.refresh()
+                    if (directPage) item.showPage(directPage)
+                    else item.openEntry(ownerId, pageId)
+                }
+                function openEntry(owner, page, source) {
+                    directPage = null
+                    ownerId = owner
+                    pageId = page
+                    entryPoint = source
+                    if (item) present()
+                    else active = true
+                }
+                function openPage(page) {
+                    directPage = page
+                    ownerId = page.id
+                    entryPoint = "direct"
+                    if (item) present()
+                    else active = true
+                }
+                onLoaded: present()
+            }
+            Connections {
+                target: ManagerNavigation
+                function onOpenRequested(owner, page, source) {
+                    if (root.visible) xoviManagerLoader.openEntry(owner, page, source)
+                }
+                function onPageOpenRequested(page) {
+                    if (root.visible) xoviManagerLoader.openPage(page)
+                }
+            }
+        }
+    END TRAVERSE
+    TRAVERSE Item#root > FocusScope#settingsSidebar > ColumnLayout#settingsColumn
+        LOCATE BEFORE Repeater#settingsRepeater
+        INSERT {
+            ArkControls.SidebarItem {
+                objectName: "xoviExtensionsEntry"
+                text: root.showLabels ? qsTr("Extensions") : ""
+                iconSource: "qrc:/ark/icons/puzzle"
+                type: ArkTokens.Sidebar.primary
+                Layout.fillWidth: true
+                visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.launcherEntryEnabled("xovi-extension-manager", "inventory", "settings", true) }
+                onTriggered: xoviManagerLoader.openEntry("xovi-extension-manager", "inventory", "settings")
+            }
+            Loader {
+                Layout.fillWidth: true
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                visible: !!item && item.count > 0
+                source: "qrc:/xovi/manager/LauncherEntries.qml"
+                onLoaded: {
+                    item.location = "settings"
+                    item.excludedPages = ["xovi-extension-manager/inventory"]
+                    item.showLabels = Qt.binding(function() { return root.showLabels })
+                    item.refresh()
+                }
+            }
+        }
+    END TRAVERSE
+END AFFECT
+AFFECT /qml/device/view/main/MainView.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE Background#root > FocusScope#rootItem
+        LOCATE AFTER ALL
+        INSERT {
+            Loader {
+                anchors.fill: parent
+                z: 2100
+                source: "qrc:/xovi/manager/NotificationAgent.qml"
+                onLoaded: item.nativeQueue = Qt.binding(function() { return root.notificationQueue })
+            }
+            Loader {
+                id: xoviPinnedManager
+                Component.onCompleted: ManagerNavigation.registerLauncher(xoviPinnedManager)
+                anchors.fill: parent
+                z: 2000
+                active: false
+                property string ownerId: ""
+                property string pageId: ""
+                property string entryPoint: "shortcut"
+                property var directPage: null
+                source: "qrc:/xovi/manager/Manager.qml"
+                onLoaded: {
+                    item.systemNavigator = root.windowNavigator
+                    item.initialOwner = ownerId
+                    item.entryPoint = entryPoint
+                    item.refresh()
+                    if (directPage) item.showPage(directPage)
+                    else item.openEntry(ownerId, pageId)
+                }
+            }
+            Connections {
+                target: ManagerNavigation
+                function onPageOpenRequested(page) {
+                    if (ManagerNavigation.settingsHostVisible()) return
+                    xoviPinnedManager.directPage = page
+                    xoviPinnedManager.ownerId = page.id
+                    xoviPinnedManager.entryPoint = "direct"
+                    if (xoviPinnedManager.item) {
+                        xoviPinnedManager.item.initialOwner = page.id
+                        xoviPinnedManager.item.entryPoint = "direct"
+                        xoviPinnedManager.item.showPage(page)
+                    } else xoviPinnedManager.active = true
+                }
+                function onOpenRequested(owner, pageId, source) {
+                    if (ManagerNavigation.settingsHostVisible()) return
+                    xoviPinnedManager.directPage = null
+                    xoviPinnedManager.ownerId = owner
+                    xoviPinnedManager.pageId = pageId
+                    xoviPinnedManager.entryPoint = source
+                    if (xoviPinnedManager.item) {
+                        xoviPinnedManager.item.initialOwner = owner
+                        xoviPinnedManager.item.entryPoint = source
+                        xoviPinnedManager.item.refresh()
+                        xoviPinnedManager.item.openEntry(owner, pageId)
+                    } else xoviPinnedManager.active = true
+                }
+            }
+        }
+    END TRAVERSE
+END AFFECT
+AFFECT /qml/device/view/navigator/Sidebar.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn
+        LOCATE AFTER ArkControls.SidebarFoldout#integrationsFoldout
+        INSERT {
+            Loader {
+                id: xoviSidebarEntries
+                Layout.fillWidth: true
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                visible: !!item && item.count > 0
+                source: "qrc:/xovi/manager/LauncherEntries.qml"
+                onLoaded: item.activated.connect(function() { root.hide() })
+            }
+        }
+    END TRAVERSE
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#filterMyFiles
+        LOCATE AFTER ALL
+        INSERT {
+            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("my-files", "sidebar") }
+        }
+    END TRAVERSE
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#filterPinned
+        LOCATE AFTER ALL
+        INSERT {
+            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("favorites", "sidebar") }
+        }
+    END TRAVERSE
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#filterTags
+        LOCATE AFTER ALL
+        INSERT {
+            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("tags", "sidebar") }
+        }
+    END TRAVERSE
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#filterTrashed
+        LOCATE AFTER ALL
+        INSERT {
+            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("trash", "sidebar") }
+        }
+    END TRAVERSE
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#quickHelp
+        LOCATE AFTER ALL
+        INSERT {
+            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("help", "sidebar") }
+        }
+    END TRAVERSE
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#settingsButton
+        LOCATE AFTER ALL
+        INSERT {
+            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("settings", "sidebar") }
+        }
+    END TRAVERSE
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#filterBy
+        LOCATE AFTER ALL
+        INSERT {
+            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("filters", "sidebar") }
+        }
+    END TRAVERSE
+    TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#integrations
+        LOCATE AFTER ALL
+        INSERT {
+            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("integrations", "sidebar") }
+        }
+    END TRAVERSE
+END AFFECT
+AFFECT /qt/qml/xofm/libs/homescreen/qml/CreateMenu.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE Item#root > Rectangle#primaryContainer > RowLayout#primaryLayout
+        LOCATE AFTER Repeater
+        INSERT {
+            Loader {
+                id: xoviBottomEntries
+                Layout.preferredWidth: item ? item.implicitWidth : 0
+                Layout.preferredHeight: 80
+                Layout.alignment: Qt.AlignVCenter
+                visible: !!item && item.count > 0
+                Component.onCompleted: setSource("qrc:/xovi/manager/LauncherEntries.qml", {
+                    "location": "bottom",
+                    "popupOverlay": Qt.binding(function() { return root.popupOverlay }),
+                    "anchorTarget": root,
+                    "currentView": Qt.binding(function() { return root.view }),
+                    "slots": Qt.binding(function() { return Math.max(1, Math.min(3, Math.floor(((root.parent ? root.parent.width : root.width) - 480) / 104))) })
+                })
+            }
+        }
+    END TRAVERSE
+END AFFECT
+
+AFFECT /qt/qml/xofm/libs/homescreen/qml/CreateMenu.qml
+    TRAVERSE Item#root > Rectangle#primaryContainer > RowLayout#primaryLayout > Repeater > WidgetLoader#widgetLoader
+        REPLACE visible WITH {
+            visible: {
+                ManagerNavigation.launcherRevision
+                return !!item?.supportedViews.includes(root.view)
+                    && ManagerNavigation.nativeEntryEnabled(item.objectName, "bottom")
+            }
+        }
+    END TRAVERSE
+END AFFECT
+
+AFFECT /qt/qml/xofm/modules/settings/qml/QuickSettingsWindow.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE BaseView#root > Item > Background
+        LOCATE AFTER ALL
+        INSERT {
+            id: xoviQuickSettingsPanel
+        }
+    END TRAVERSE
+    TRAVERSE BaseView#root > Item
+        LOCATE AFTER ALL
+        INSERT {
+            Connections {
+                target: ManagerNavigation
+                function onQuickNotificationsRequested() {
+                    xoviNotificationDrawer.active = !xoviNotificationDrawer.active
+                }
+                function onOpenRequested(owner, pageId, source) {
+                    if (source === "quick") root.windowNavigator.close("settings/window/quicksettings")
+                }
+                function onPageOpenRequested(page) {
+                    if (root.visible) root.windowNavigator.close("settings/window/quicksettings")
+                }
+            }
+            Loader {
+                id: xoviNotificationDrawer
+                anchors.left: parent.left
+                anchors.right: xoviQuickSettingsPanel.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                z: 100
+                active: false
+                source: "qrc:/xovi/manager/NotificationDrawer.qml"
+                onLoaded: {
+                    item.closeRequested.connect(function() { xoviNotificationDrawer.active = false })
+                    item.openPage.connect(function(owner, pageId) {
+                        ManagerNavigation.openSettings(owner, pageId, "notification")
+                        root.windowNavigator.close()
+                    })
+                }
+            }
+        }
+    END TRAVERSE
+END AFFECT
+AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleColumn.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE ColumnLayout#root
+        LOCATE AFTER Repeater
+        INSERT {
+            ArkControls.StateSwitch {
+                objectName: "xoviQuickNotifications"
+                visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.launcherEntryEnabled("xovi-extension-manager", "notifications", "quick", true) }
+                iconSource: "qrc:/xovi/manager/icons/bell.svg"
+                onClicked: ManagerNavigation.toggleQuickNotifications()
+            }
+            Loader {
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                visible: !!item && item.count > 0
+                source: "qrc:/xovi/manager/LauncherEntries.qml"
+                onLoaded: {
+                    item.location = "quick"
+                    item.excludedPages = ["xovi-extension-manager/notifications"]
+                    item.refresh()
+                }
+            }
+        }
+    END TRAVERSE
+END AFFECT
+
+AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleColumn.qml
+    TRAVERSE ColumnLayout#root > Repeater > WidgetLoader
+        LOCATE AFTER ALL
+        INSERT { visible: !item || item.xoviShortcutEnabled !== false }
+    END TRAVERSE
+END AFFECT
+AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/AirplaneToggle.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE QuickSettingsToggle
+        LOCATE AFTER ALL
+        INSERT {
+            property bool xoviShortcutEnabled: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("airplane", "quick") }
+        }
+    END TRAVERSE
+END AFFECT
+AFFECT /qt/qml/xofm/modules/screenshare/qml/ScreenShareToggle.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE QuickSettingsToggle
+        LOCATE AFTER ALL
+        INSERT {
+            property bool xoviShortcutEnabled: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("screen-share", "quick") }
+        }
+    END TRAVERSE
+END AFFECT
+AFFECT /qt/qml/xofm/modules/orientationsensor/qml/LockOrientationToggle.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE QuickSettingsToggle
+        LOCATE AFTER ALL
+        INSERT {
+            property bool xoviShortcutEnabled: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("rotation", "quick") }
+        }
+    END TRAVERSE
+END AFFECT
+
+AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE GridLayout#root
+        LOCATE AFTER Repeater
+        INSERT {
+            ArkControls.StateSwitch {
+                objectName: "xoviQuickNotifications"
+                visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.launcherEntryEnabled("xovi-extension-manager", "notifications", "quick", true) }
+                iconSource: "qrc:/xovi/manager/icons/bell.svg"
+                onClicked: ManagerNavigation.toggleQuickNotifications()
+            }
+            Loader {
+                Layout.preferredHeight: item ? item.implicitHeight : 0
+                visible: !!item && item.count > 0
+                source: "qrc:/xovi/manager/LauncherEntries.qml"
+                onLoaded: {
+                    item.location = "quick"
+                    item.excludedPages = ["xovi-extension-manager/notifications"]
+                    item.refresh()
+                }
+            }
+        }
+    END TRAVERSE
+END AFFECT
+AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
+    TRAVERSE GridLayout#root > Repeater > WidgetLoader
+        LOCATE AFTER ALL
+        INSERT { visible: !item || item.xoviShortcutEnabled !== false }
+    END TRAVERSE
+END AFFECT

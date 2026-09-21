@@ -1,0 +1,9 @@
+module ark.controls
+Button 1.0 Button.qml
+Label 1.0 Label.qml
+InputField 1.0 InputField.qml
+ProgressBar 1.0 ProgressBar.qml
+SidebarItem 1.0 SidebarItem.qml
+Icon 1.0 Icon.qml
+
+StateSwitch 1.0 StateSwitch.qml

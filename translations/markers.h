@@ -1,0 +1,20 @@
+#include <QtGlobal>
+static const char *const translationMarkers[] = {
+    QT_TRANSLATE_NOOP("XoviPluginNames", "Extensions"),
+    QT_TRANSLATE_NOOP("XoviPluginNames", "Notifications"),
+    QT_TRANSLATE_NOOP("Settings", "Extensions"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "My files"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Filter by"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Favorites"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Tags"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Integrations"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Trash"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Help"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Settings"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Search"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Create"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Calendar"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Airplane mode"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Screen Share"),
+    QT_TRANSLATE_NOOP("NativeLaunchers", "Rotation lock"),
+};

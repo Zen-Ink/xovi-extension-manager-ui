@@ -1,0 +1,39 @@
+<RCC>
+<qresource prefix="/xovi/manager">
+<file alias="SettingsApi.qml">resources/qml/SettingsApi.qml</file>
+<file alias="NotificationDrawer.qml">resources/qml/NotificationDrawer.qml</file>
+<file alias="NotificationCenter.qml">resources/qml/NotificationCenter.qml</file>
+<file alias="NotificationAgent.qml">resources/qml/NotificationAgent.qml</file>
+<file alias="icons/sidebar.svg">sdk/qml/org/xovi/Controls/icons/sidebar.svg</file>
+<file alias="icons/bottom-bar.svg">sdk/qml/org/xovi/Controls/icons/bottom-bar.svg</file>
+<file alias="icons/bell.svg">resources/icons/bell.svg</file>
+<file alias="Manager.qml">resources/qml/Manager.qml</file>
+<file alias="LauncherEntries.qml">resources/qml/LauncherEntries.qml</file>
+<file alias="icons/back.svg">resources/icons/back.svg</file>
+<file alias="icons/check.svg">resources/icons/check.svg</file>
+<file alias="icons/close.svg">resources/icons/close.svg</file>
+<file alias="icons/info.svg">resources/icons/info.svg</file>
+<file alias="icons/logs.svg">resources/icons/logs.svg</file>
+<file alias="icons/next.svg">resources/icons/next.svg</file>
+<file alias="icons/pin.svg">resources/icons/pin.svg</file>
+<file alias="icons/plugins.svg">resources/icons/plugins.svg</file>
+<file alias="icons/power.svg">resources/icons/power.svg</file>
+<file alias="icons/refresh.svg">resources/icons/refresh.svg</file>
+<file alias="icons/settings.svg">resources/icons/settings.svg</file>
+<file alias="icons/keyboard.svg">resources/icons/keyboard.svg</file>
+<file alias="icons/cloud.svg">resources/icons/cloud.svg</file>
+<file alias="icons/library.svg">resources/icons/library.svg</file>
+</qresource>
+<qresource prefix="/qt/qml/org/xovi/Manager/Controls">
+<file alias="NotificationProgress.qml">resources/controls/NotificationProgress.qml</file>
+<file alias="Typography.qml">sdk/qml/org/xovi/Controls/Typography.qml</file>
+<file alias="SettingsSidebarItem.qml">sdk/qml/org/xovi/Controls/SettingsSidebarItem.qml</file>
+<file alias="NavigationItem.qml">resources/controls/NavigationItem.qml</file>
+<file alias="ButtonBase.qml">sdk/qml/org/xovi/Controls/EButton.qml</file>
+<file alias="EButton.qml">resources/controls/EButton.qml</file>
+<file alias="ELabel.qml">sdk/qml/org/xovi/Controls/ELabel.qml</file>
+<file alias="Pager.qml">resources/controls/Pager.qml</file>
+<file alias="NotificationStore.qml">resources/controls/NotificationStore.qml</file>
+<file alias="qmldir">resources/controls/qmldir</file>
+</qresource>
+</RCC>
