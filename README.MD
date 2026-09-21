@@ -14,6 +14,22 @@ Requires `xovi-extension-manager >=0.2.0`, `qt-resource-rebuilder >=0.4.0`, and
 blocking broadcasts back to QML. The settings-entry patch supports the different
 3.27 and 3.28 roots; unsupported layouts fail the patch and retain original QML.
 
+## Integrate another plugin
+
+**External plugins do not need the SDK to use manager-ui.** Native plugins may
+also register/open their existing pages through QML, optionally injected by QMD.
+Alternatively, a native plugin can expose a settings provider using the SDK's C
+header, independently of a QML registration object's lifetime. Shared controls
+and translation helpers are optional in either case.
+
+See [two integration paths with minimal examples](docs/integration.md) for the
+tradeoffs, direct page opening, PIN registration and native exports.
+
+## Build manager-ui itself
+
+The SDK submodule below is a dependency of **this implementation**, not a
+requirement imposed on plugins that open/register their own QML pages.
+
 Build both supported architectures using the plugin's own script:
 
 ```sh
