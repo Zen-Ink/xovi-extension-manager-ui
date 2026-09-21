@@ -151,6 +151,8 @@ int main(int argc,char **argv) {
     h->setPage(deliveredPage);settle(h);
     check(h->state()=="ready" && visualChild(h,"directRoot"),"ordinary Item opens without SDK properties");
     check(!sharedNavigation->openPage({{"url","https://example.com/Page.qml"}}).value("ok").toBool(),"direct remote URL rejected");
+    const auto invalidPage=sharedNavigation->openPage({{"url","https://example.invalid/Settings.qml"}});
+    check(invalidPage.value("diagnostic").toMap().value("category")=="request" && !invalidPage.value("diagnostic").toMap().value("retryable").toBool(),"invalid page reports structured non-retryable request error");
     QTemporaryDir directDir;
     QFile directFile(directDir.path()+"/Page.qml");check(directFile.open(QIODevice::WriteOnly),"direct URL fixture");
     directFile.write("import QtQuick; Item { objectName: 'urlRoot' }");directFile.close();
@@ -167,6 +169,7 @@ int main(int argc,char **argv) {
     h->setPage(deliveredPage);settle(h);delete borrowed;
     for(int i=0;i<4;++i) QCoreApplication::processEvents();
     check(h->state()=="failed" && !visualChild(h,"componentRoot"),"destroyed Component safely unloads page with a useful error");
+    check(h->recoveryHint().contains("Reopen") && !h->recoveryHint().contains("restart"),"expired page context offers reopen instead of restart");
     h->setPage({});
     auto *registrationOwner=new QObject;
     QVariantMap runtimeDescriptor{{"id","qmd-example"},{"title","QMD example"},{"kind","inline"},
@@ -296,7 +299,14 @@ int main(int argc,char **argv) {
     manager->setProperty("pages",originalPages);
     QVariant pkg=QVariantMap{{"id","example"},{"enabled",true},{"type","extension"},{"requiresRestart",true},{"runtime",QVariantMap{{"loadStateName","link-failed"},{"loadError","missing symbol"}}}};
     QMetaObject::invokeMethod(manager.data(),"statusFor",Q_RETURN_ARG(QVariant,result),Q_ARG(QVariant,pkg));
-    check(result.toString().contains("Load failed") && result.toString().contains("Restart required"),"inventory distinguishes runtime failure and pending restart");
+    check(result.toString().contains("Load failed") && !result.toString().contains("Restart"),"runtime failure takes precedence over restart");
+    const QVariant failurePackage=QVariantMap{{"id","elf-example"},{"requiresRestart",true},{"pendingChange",true},
+        {"diagnostics",QVariantList{QVariantMap{{"severity","error"},{"code","runtime-dlopen-failed"},{"causeCode","elf-class-mismatch"},
+          {"summary","Plugin or dependency ELF bitness does not match this process."},{"recovery","Install a build matching the host process and its dependencies."},{"detail","wrong ELF class"}}}}};
+    QMetaObject::invokeMethod(manager.data(),"statusFor",Q_RETURN_ARG(QVariant,result),Q_ARG(QVariant,failurePackage));
+    check(result.toString().contains("ELF bitness") && !result.toString().contains("Restart"),"ELF failure is the primary package status");
+    QMetaObject::invokeMethod(manager.data(),"diagnosticsFor",Q_RETURN_ARG(QVariant,result),Q_ARG(QVariant,failurePackage));
+    check(result.toString().contains("wrong ELF class") && result.toString().contains("does not fix"),"diagnostics preserve cause and distinguish pending changes");
     QMetaObject::invokeMethod(manager.data(),"diagnosticsFor",Q_RETURN_ARG(QVariant,result),Q_ARG(QVariant,pkg));
     check(result.toString().contains("missing symbol") && result.toString().contains("bad page"),"native and settings page errors are visible");
     QMetaObject::invokeMethod(manager.data(),"toggleAction",Q_RETURN_ARG(QVariant,result),Q_ARG(QVariant,QVariant(QVariantMap{{"availableActions",QStringList{"disableLegacy"}}})));

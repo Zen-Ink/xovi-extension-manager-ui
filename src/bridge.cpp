@@ -15,6 +15,32 @@
 #include <QRegularExpression>
 #include "../sdk/xovi-navigation.h"
 
+// UI-local errors exist even when the manager service is unavailable.
+static QVariantMap uiFailure(const QString &code, const QString &detail={}) {
+    QString category="request", action="correct-request", severity="error";
+    QString summary="The request or package declaration is invalid.", recovery="Correct the reported field or package format.";
+    bool retryable=false;
+    if(QStringList{"ui-not-ready","manager-unavailable","navigation-unavailable","page-unavailable","page-not-found"}.contains(code)) {
+        category="availability"; action="check-service"; severity="warning"; retryable=true;
+        summary="A required service is not ready or unavailable.";
+        recovery="Wait for initialization or check whether the service loaded.";
+    } else if(QStringList{"invalid-component-context","invalid-component","invalid-owner","page-already-registered","registration-not-owned"}.contains(code)) {
+        category="page";action="check-plugin";
+        summary="Page registration or object lifetime is invalid.";
+        recovery="Check registration ownership, identifiers and the QML context.";
+    } else if(code=="component-limit") {
+        category="capacity";action="check-plugin";
+        summary="A service limit has been reached.";
+        recovery="Release unused registrations or queued actions and check the plugin.";
+    } else if(code=="navigation-failed") {
+        category="page";action="check-plugin";
+        summary="The settings page could not be opened.";
+        recovery="Check the navigation callback and its error details.";
+    }
+    return {{"ok",false},{"accepted",false},{"error",code},{"message",detail},
+        {"diagnostic",QVariantMap{{"code",code},{"causeCode",""},{"category",category},{"severity",severity},{"action",action},
+                                 {"summary",summary},{"recovery",recovery},{"detail",detail},{"retryable",retryable}}}};
+}
 static QString signalRequest(const QString &signal,const QString &message) {
     auto name=signal.toUtf8(), data=message.toUtf8();
     int hits=0;
@@ -28,24 +54,24 @@ std::atomic<bool> navigationReady{false};
 QVariantMap requestSettings(const QString &ownerId,const QString &pageId) {
     static const QRegularExpression idPattern(QStringLiteral("^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$"));
     if (!idPattern.match(ownerId).hasMatch() || !idPattern.match(pageId).hasMatch())
-        return {{"ok",false},{"accepted",false},{"error","invalid-id"}};
+        return uiFailure("invalid-id");
     auto *app=QCoreApplication::instance();
-    if (!app || !navigationReady.load()) return {{"ok",false},{"accepted",false},{"error","ui-not-ready"}};
+    if (!app || !navigationReady.load()) return uiFailure("ui-not-ready");
     QString resolvedOwner=ownerId;
     const bool builtIn=ownerId=="xovi-extension-manager" && (pageId=="inventory" || pageId=="notifications");
     if (!builtIn) {
         // Pure native broker call: do not create a QObject on the caller thread.
         const auto reply=QJsonDocument::fromJson(signalRequest("xovi-extension-manager$settingsList","{}").toUtf8()).object();
-        if (!reply.value("ok").toBool()) return {{"ok",false},{"accepted",false},{"error","manager-unavailable"}};
+        if (!reply.value("ok").toBool()) return uiFailure("manager-unavailable");
         bool found=false;
         for (const auto &entry:reply.value("pages").toArray()) {
             const auto page=entry.toObject();
             if ((page.value("id").toString()==ownerId || page.value("packageId").toString()==ownerId) && page.value("pageId").toString()==pageId) {
-                if (!page.value("available").toBool()) return {{"ok",false},{"accepted",false},{"error","page-unavailable"}};
+                if (!page.value("available").toBool()) return uiFailure("page-unavailable");
                 resolvedOwner=page.value("id").toString();found=true;break;
             }
         }
-        if (!found) return {{"ok",false},{"accepted",false},{"error","page-not-found"}};
+        if (!found) return uiFailure("page-not-found");
     }
     QMetaObject::invokeMethod(app,[resolvedOwner,pageId] {
         if (navigationReady.load()) ManagerNavigation::shared()->openSettings(resolvedOwner,pageId,"plugin");
@@ -58,7 +84,7 @@ char *navigationReply(const QVariantMap &value) {
 void freeNavigationString(char *value) { std::free(value); }
 char *openSettingsNative(const char *ownerId,const char *pageId) {
     if (!ownerId || strnlen(ownerId,129)>128 || (pageId && strnlen(pageId,129)>128))
-        return navigationReply({{"ok",false},{"accepted",false},{"error","invalid-id"}});
+        return navigationReply(uiFailure("invalid-id"));
     return navigationReply(requestSettings(QString::fromUtf8(ownerId),pageId ? QString::fromUtf8(pageId) : QStringLiteral("main")));
 }
 }
@@ -67,11 +93,11 @@ extern "C" const XemNavigationApiV1 *xem_get_navigation_api_v1() {
     return &api;
 }
 extern "C" char *xem_open_settings(const char *request) {
-    if (!request || strnlen(request,4097)>4096) return navigationReply({{"ok",false},{"accepted",false},{"error","invalid-request"}});
+    if (!request || strnlen(request,4097)>4096) return navigationReply(uiFailure("invalid-request"));
     const auto doc=QJsonDocument::fromJson(QByteArray(request));
     const auto args=doc.object();
     if (!doc.isObject() || !args.value("ownerId").isString() || (args.contains("pageId") && !args.value("pageId").isString()))
-        return navigationReply({{"ok",false},{"accepted",false},{"error","invalid-request"}});
+        return navigationReply(uiFailure("invalid-request"));
     return navigationReply(requestSettings(args.value("ownerId").toString(),args.value("pageId").toString("main")));
 }
 ManagerNavigation *ManagerNavigation::shared() {
@@ -98,7 +124,7 @@ QQmlComponent *ManagerNavigation::pageComponent(const QString &token) const {
     return components_.value(token).data();
 }
 QVariantMap ManagerNavigation::normalizePage(const QVariantMap &input, bool registered) {
-    auto fail=[](const QString &error) { return QVariantMap{{"ok",false},{"error",error}}; };
+    auto fail=[](const QString &error) { return uiFailure(error); };
     auto page=input;
     const auto id=page.value("id",registered ? QString() : QStringLiteral("direct-page")).toString();
     const auto pageId=page.value("pageId",QStringLiteral("main")).toString();
@@ -141,17 +167,17 @@ QVariantMap ManagerNavigation::normalizePage(const QVariantMap &input, bool regi
     return page;
 }
 QVariantMap ManagerNavigation::openPage(const QVariantMap &input) {
-    if(!navigationReady.load()) return {{"ok",false},{"accepted",false},{"error","ui-not-ready"}};
+    if(!navigationReady.load()) return uiFailure("ui-not-ready");
     auto page=normalizePage(input,false);
     if(!page.value("ok").toBool()) {page.insert("accepted",false);return page;}
     QTimer::singleShot(0,this,[this,page] { if(navigationReady.load()) emit pageOpenRequested(page); });
     return {{"ok",true},{"accepted",true},{"state","queued"}};
 }
 QVariantMap ManagerNavigation::registerPage(QObject *owner,const QVariantMap &input) {
-    if(!owner || owner->thread()!=thread()) return {{"ok",false},{"error","invalid-owner"}};
+    if(!owner || owner->thread()!=thread()) return uiFailure("invalid-owner");
     const auto key=input.value("id").toString()+"/"+input.value("pageId",QStringLiteral("main")).toString();
     if(registrations_.contains(key) && registrations_[key].owner!=owner)
-        return {{"ok",false},{"error","page-already-registered"}};
+        return uiFailure("page-already-registered");
     auto page=normalizePage(input,true);
     if(!page.value("ok").toBool()) return page;
     const bool existing=registrations_.contains(key);
@@ -173,7 +199,7 @@ QVariantMap ManagerNavigation::registerPage(QObject *owner,const QVariantMap &in
 QVariantMap ManagerNavigation::unregisterPage(QObject *owner,const QString &id,const QString &pageId) {
     const auto key=id+"/"+pageId;
     if(!registrations_.contains(key) || registrations_[key].owner!=owner)
-        return {{"ok",false},{"error","registration-not-owned"}};
+        return uiFailure("registration-not-owned");
     ManagerBridge bridge;
     auto result=bridge.request("settingsUnregister",{{"id",id},{"pageId",pageId},{"registrationToken",registrations_[key].token}});
     if(result.value("ok").toBool()) {registrations_.remove(key);notifyLaunchersChanged();}
@@ -196,10 +222,10 @@ QVariantMap ManagerBridge::request(const QString &command,const QVariantMap &arg
     const bool plainId = command=="get" || command=="enable" || command=="disable" || command=="repair";
     const QString payload = plainId ? args.value("id").toString()
         : QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(args)).toJson(QJsonDocument::Compact));
-    if (plainId && payload.isEmpty()) return {{"ok",false},{"error","missing-id"}};
+    if (plainId && payload.isEmpty()) return uiFailure("missing-id");
     auto text=signalRequest("xovi-extension-manager$"+command, payload);
     auto doc=QJsonDocument::fromJson(text.toUtf8());
-    if(!doc.isObject()) return {{"ok",false},{"error","manager-unavailable"}};
+    if(!doc.isObject()) return uiFailure("manager-unavailable");
     return doc.object().toVariantMap();
 }
 SettingsContext::SettingsContext(QString id,QObject *parent):QObject(parent),id_(std::move(id)) {
@@ -231,11 +257,11 @@ QVariantMap SettingsContext::takeNotificationActions() {
     return bridge.request("notificationsPollActions", {{"ownerId", id_}});
 }
 QVariantMap SettingsContext::openSystemSettings(const QString &target) {
-    if(target!="wifi" && target!="language") return {{"ok",false},{"error","unsupported-target"}};
-    if(!systemNavigationAvailable()) return {{"ok",false},{"error","navigation-unavailable"}};
+    if(target!="wifi" && target!="language") return uiFailure("unsupported-target");
+    if(!systemNavigationAvailable()) return uiFailure("navigation-unavailable");
     auto result=navigationHandler_.call({QJSValue(target)});
-    if(result.isError()) return {{"ok",false},{"error","navigation-failed"},{"message",result.toString()}};
-    if(!result.isBool() || !result.toBool()) return {{"ok",false},{"error","navigation-failed"}};
+    if(result.isError()) return uiFailure("navigation-failed",result.toString());
+    if(!result.isBool() || !result.toBool()) return uiFailure("navigation-failed");
     return {{"ok",true},{"state","dispatched"}};
 }
 void SettingsHost::setNavigationHandler(const QJSValue &handler) {
@@ -287,7 +313,15 @@ QString SettingsHost::errorSummary() const {
     return tr("This plugin's settings page could not be opened.");
 }
 QString SettingsHost::recoveryHint() const {
-    return tr("Update the plugin, then restart xochitl.");
+    if (error_.contains("context", Qt::CaseInsensitive) || error_.contains("owner was destroyed", Qt::CaseInsensitive) || error_.contains("no longer available", Qt::CaseInsensitive))
+        return tr("Reopen the page. If this repeats, the plugin must fix its page lifetime.");
+    if (error_.contains("Non-existent attached object") || error_.contains("Cannot override FINAL property"))
+        return tr("Install a plugin version compatible with this firmware.");
+    if (error_.contains("is not installed") || error_.contains("not found", Qt::CaseInsensitive) || error_.contains("No such file"))
+        return tr("Restore the missing QML component or resource.");
+    if (error_.contains("unavailable", Qt::CaseInsensitive))
+        return tr("Check whether the plugin and its page are still available, then reopen it.");
+    return tr("Check the QML error details and update the plugin if needed.");
 }
 void SettingsHost::retry() {
     if (page_.isEmpty()) return;
@@ -403,7 +437,7 @@ void SettingsHost::finish() {
     const QVariantMap initial=usesContext ? QVariantMap{{"settingsContext",QVariant::fromValue(context_)}} : QVariantMap{};
     auto *object=component_->createWithInitialProperties(initial,pageContext);
     item_=qobject_cast<QQuickItem *>(object);
-    if(!item_ || (usesContext && object->metaObject()->indexOfProperty("settingsContext")<0)) {item_=nullptr;delete object;report("failed",component_->errorString().isEmpty() ? "Settings root must be an Item with a settingsContext property" : component_->errorString());return;}
+    if(!item_ || (usesContext && object->metaObject()->indexOfProperty("settingsContext")<0)) {item_=nullptr;delete object;report("failed",component_->errorString().isEmpty() ? "Settings root must be an Item; settingsContext is required only when requested" : component_->errorString());return;}
     item_->setParent(this);item_->setParentItem(this);
     item_->setSize(size());
     report("ready");

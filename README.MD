@@ -52,3 +52,5 @@ Clone with `git clone --recurse-submodules`, or run
 `git submodule update --init --recursive` after pulling. The `sdk` submodule
 pins the shared settings, navigation, notifications and QML controls API.
 The `xovi` submodule supplies the binding generator; `XOVI_REPO` can override it.
+
+See [error presentation and component ownership](docs/diagnostics-and-controls.md).

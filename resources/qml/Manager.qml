@@ -80,8 +80,8 @@ Rectangle {
         injectionPolicy = status.policy ? (status.policy.entries || {}) : ({})
         var pins = bridge.request("launcherList", {})
         launchers = (pins.entries || []).concat(pins.nativeEntries || [])
-        if (!inventory.ok) message = inventory.error || root.translate(QT_TR_NOOP("Manager unavailable"))
-        else if (!pins.ok) message = pins.error || ""
+        if (!inventory.ok) message = root.operationError(inventory)
+        else if (!pins.ok) message = root.operationError(pins)
     }
     function pageTitle(page) { bridge.uiLanguage; return bridge.entryTitle(page) }
     function packageTitle(pkg) {
@@ -89,25 +89,51 @@ Rectangle {
         return owned.length ? pageTitle(owned[0]) : pageTitle({id:pkg.id, title:pkg.name || pkg.id})
     }
     function pagesFor(id) { return pages.filter(function(page) { return (page.packageId || page.id) === id }) }
+    function diagnosticText(diagnostic) {
+        if (!diagnostic) return ""
+        bridge.uiLanguage
+        return [diagnostic.summary ? bridge.translate("Diagnostics", diagnostic.summary) : "",
+                diagnostic.recovery ? bridge.translate("Diagnostics", diagnostic.recovery) : ""].filter(function(s) { return s.length }).join("\n")
+    }
+    function operationError(result) {
+        return diagnosticText(result.diagnostic) || result.message || result.error || root.translate(QT_TR_NOOP("Unable to save"))
+    }
+    function primaryDiagnostic(pkg) {
+        var items = pkg.diagnostics || []
+        return items.find(function(d) { return d.severity === "error" || d.severity === "critical" }) || null
+    }
     function statusFor(pkg) {
+        var failure = primaryDiagnostic(pkg)
+        // Failure takes precedence over an unrelated pending change.
+        if (failure) return bridge.translate("Diagnostics", failure.summary)
         var runtime = pkg.runtime || {}
-        var states = {"initialized": root.translate(QT_TR_NOOP("Initialized")), "link-failed": root.translate(QT_TR_NOOP("Load failed")), "load-failed": root.translate(QT_TR_NOOP("Load failed")), "not-loaded": root.translate(QT_TR_NOOP("Not loaded"))}
-        var status = pkg.type === "extension" ? (states[runtime.loadStateName] || runtime.loadStateName || root.translate(QT_TR_NOOP("Not scanned"))) : (pkg.effectiveEnabled ? root.translate(QT_TR_NOOP("Active")) : root.translate(QT_TR_NOOP("Inactive")))
-        if (pkg.activationNeedsRepair && pkg.activationIssue !== "absolute-link") status = root.translate(QT_TR_NOOP("Activation needs repair")) + " · " + status
-        if (pkg.requiresRestart) status += " · " + root.translate(QT_TR_NOOP("Restart required"))
-        return status
+        var state = runtime.loadStateName || "not-scanned"
+        var failed = ["dlopen-failed", "link-failed", "dependency-failed"].indexOf(state) >= 0
+        if (failed) return root.translate(QT_TR_NOOP("Load failed")) // Older backend compatibility.
+        if (state === "shouldload-failed" || state === "condition-failed") return root.translate(QT_TR_NOOP("Load skipped"))
+        if (pkg.activationNeedsRepair && pkg.activationIssue !== "absolute-link") return root.translate(QT_TR_NOOP("Activation needs repair"))
+        if (pkg.restartToApply || pkg.requiresRestart) return root.translate(QT_TR_NOOP("Restart xochitl to apply"))
+        if (pkg.type !== "extension") return pkg.effectiveEnabled ? root.translate(QT_TR_NOOP("Active")) : root.translate(QT_TR_NOOP("Inactive"))
+        return state === "initialized" ? root.translate(QT_TR_NOOP("Initialized")) : root.translate(QT_TR_NOOP("Not loaded"))
     }
     function diagnosticsFor(pkg) {
         var lines = []
-        if (pkg.runtime && pkg.runtime.loadError) lines.push(pkg.runtime.loadError)
-        lines = lines.concat(pkg.errors || [], pkg.issues || [])
-        if ((pkg.warnings || []).length) lines.push(root.translate(QT_TR_NOOP("Warnings")) + ":\n" + pkg.warnings.join("\n"))
+        if ((pkg.diagnostics || []).length) {
+            pkg.diagnostics.forEach(function(d) {
+                lines.push(d.severity + " · " + d.code + (d.causeCode ? " / " + d.causeCode : "") + "\n" + diagnosticText(d) + (d.detail ? "\n" + d.detail : ""))
+            })
+        } else {
+            if (pkg.runtime && pkg.runtime.loadError) lines.push(pkg.runtime.loadError)
+            lines = lines.concat(pkg.errors || [], pkg.issues || [])
+            if ((pkg.warnings || []).length) lines.push(root.translate(QT_TR_NOOP("Warnings")) + ":\n" + pkg.warnings.join("\n"))
+        }
+        if (pkg.pendingChange) lines.push(root.translate(QT_TR_NOOP("A saved change is pending. Restart applies the change; it does not fix the reported error.")))
         pagesFor(pkg.id).forEach(function(page) {
             var state = uiStates[page.id + "/" + page.pageId]
             if (state && (state.state === "failed" || state.warning)) lines.push(page.title + ": " + (state.message || state.warning))
         })
         injections.forEach(function(entry) {
-            if (!pkg.id || entry.ownerId === pkg.id) lines.push(entry.ownerId + "/" + entry.injectionId + "\n" + entry.state + " · " + entry.code + "\n" + (entry.message || ""))
+            if (!pkg.id || entry.ownerId === pkg.id) lines.push(entry.ownerId + "/" + entry.injectionId + "\n" + entry.state + " · " + entry.code + "\n" + diagnosticText(entry.diagnostic) + "\n" + (entry.message || ""))
         })
         return lines.filter(function(line, index) { return lines.indexOf(line) === index }).join("\n")
     }
@@ -139,7 +165,7 @@ Rectangle {
     }
     function repairActivation(pkg) {
         var result = bridge.request("repair", {id: pkg.id})
-        message = result.ok ? (result.requiresRestart ? root.translate(QT_TR_NOOP("Activation repaired. Restart xochitl to apply.")) : root.translate(QT_TR_NOOP("Activation repaired"))) : root.translate(QT_TR_NOOP("Unable to repair activation. Open diagnostics for details."))
+        message = result.ok ? (result.requiresRestart ? root.translate(QT_TR_NOOP("Activation repaired. Restart xochitl to apply.")) : root.translate(QT_TR_NOOP("Activation repaired"))) : root.operationError(result)
         messageDetails = result.ok ? "" : JSON.stringify(result, null, 2)
         refresh()
     }
@@ -148,9 +174,9 @@ Rectangle {
         var result = bridge.request(action, {id:pkg.id})
         var text = result.ok ? (action === "enable" ? root.translate(QT_TR_NOOP("Enabled")) : root.translate(QT_TR_NOOP("Disabled"))) : root.translate(QT_TR_NOOP("Unable to save"))
         if (result.ok && result.requiresRestart) text += " · " + root.translate(QT_TR_NOOP("Restart xochitl to apply"))
-        if (!result.ok && result.error) text += "\n" + result.error
+        if (!result.ok) text = root.operationError(result)
         var posted = bridge.request("notificationsPost", {ownerId:"xovi-extension-manager", notificationId:"lifecycle-" + pkg.id,
-            title:root.packageTitle(pkg), message:text, level:result.ok ? "info" : "error", pageId:"inventory"})
+            title:root.packageTitle(pkg), message:text, level:result.ok ? "info" : ((result.diagnostic || {}).severity === "warning" ? "warning" : "error"), pageId:"inventory"})
         if (!posted.ok) message = text
         else { message = ""; NotificationStore.refresh() }
         refresh()
@@ -158,7 +184,7 @@ Rectangle {
     }
     function setPin(entry, location) {
         var result = bridge.request("launcherSet", {id: entry.id, pageId: entry.pageId, location: location, enabled: !entry[location]})
-        if (!result.ok) message = result.error === "last-manager-entry" ? root.translate(QT_TR_NOOP("Keep at least one entry to Extensions.")) : (result.error || root.translate(QT_TR_NOOP("Unable to save")))
+        if (!result.ok) message = result.error === "last-manager-entry" ? root.translate(QT_TR_NOOP("Keep at least one entry to Extensions.")) : root.operationError(result)
         else { refresh(); ManagerNavigation.notifyLaunchersChanged() }
     }
     function closePage() {
@@ -283,7 +309,7 @@ Rectangle {
                             ELabel { text: root.packageTitle(modelData); Layout.fillWidth: true; elide: Text.ElideRight; maximumLineCount: 1 }
                             RowLayout {
                                 Layout.fillWidth: true
-                                ELabel { text: modelData.activationNeedsRepair && modelData.activationIssue !== "absolute-link" ? root.translate(QT_TR_NOOP("Needs repair")) : modelData.requiresRestart ? root.translate(QT_TR_NOOP("Restart")) : ((modelData.runtime || {}).loadState === 7 ? root.translate(QT_TR_NOOP("Loaded")) : (modelData.enabled ? root.translate(QT_TR_NOOP("Enabled")) : root.translate(QT_TR_NOOP("Disabled")))); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
+                                ELabel { text: root.statusFor(modelData); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
                                 EButton {
                                     iconName: modelData.activationNeedsRepair ? "refresh" : "power"
                                     text: modelData.activationNeedsRepair ? root.translate(QT_TR_NOOP("Repair")) : ""
@@ -398,13 +424,13 @@ Rectangle {
                     required property var modelData
                     Layout.fillWidth: true
                     ELabel { text: modelData.injectionId; Layout.fillWidth: true }
-                    ELabel { text: modelData.state; Layout.fillWidth: true }
+                    ELabel { text: root.diagnosticText(modelData.diagnostic) || modelData.state; Layout.fillWidth: true }
                     EButton {
                         property bool desired: root.injectionPolicy[modelData.ownerId + "/" + modelData.injectionId] !== false
                         iconName: "power"; checked: desired; text: desired ? root.translate(QT_TR_NOOP("Disable")) : root.translate(QT_TR_NOOP("Enable"))
                         onClicked: {
                             var result = bridge.request("injectionsSet", {id:modelData.ownerId, injectionId:modelData.injectionId, enabled:!desired})
-                            root.message = result.ok ? root.translate(QT_TR_NOOP("Restart xochitl to apply")) : result.error
+                            root.message = result.ok ? root.translate(QT_TR_NOOP("Restart xochitl to apply")) : root.operationError(result)
                             root.refresh()
                         }
                     }

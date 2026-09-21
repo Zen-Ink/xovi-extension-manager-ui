@@ -1,6 +1,264 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
+<?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="zh_CN" sourcelanguage="en">
+    <context>
+        <name>Diagnostics</name>
+        <message>
+            <source>Plugin information is incomplete or uncertain.</source>
+            <translation>插件信息不完整或尚未确认。</translation>
+        </message>
+        <message>
+            <source>Check compatibility if the plugin does not work.</source>
+            <translation>如果插件无法工作，请检查兼容性。</translation>
+        </message>
+        <message>
+            <source>Plugin loading failed.</source>
+            <translation>插件加载失败。</translation>
+        </message>
+        <message>
+            <source>Check the loader error and install a compatible build.</source>
+            <translation>请查看加载器错误并安装兼容构建。</translation>
+        </message>
+        <message>
+            <source>Plugin or dependency ELF bitness does not match this process.</source>
+            <translation>插件或依赖的 ELF 位数与当前进程不匹配。</translation>
+        </message>
+        <message>
+            <source>Install a build matching the host process and its dependencies.</source>
+            <translation>请安装与宿主进程及其依赖匹配的构建。</translation>
+        </message>
+        <message>
+            <source>Plugin or dependency ABI is incompatible.</source>
+            <translation>插件或依赖的 ABI 不兼容。</translation>
+        </message>
+        <message>
+            <source>Install matching plugin and dependency versions.</source>
+            <translation>请安装版本相互匹配的插件和依赖。</translation>
+        </message>
+        <message>
+            <source>Access to a plugin or dependency was denied.</source>
+            <translation>无法访问插件或依赖。</translation>
+        </message>
+        <message>
+            <source>Check file permissions and mount restrictions.</source>
+            <translation>请检查文件权限和挂载限制。</translation>
+        </message>
+        <message>
+            <source>A plugin file or shared library is missing.</source>
+            <translation>插件文件或共享库缺失。</translation>
+        </message>
+        <message>
+            <source>Restore the missing file or install the required dependency.</source>
+            <translation>请恢复缺失文件或安装所需依赖。</translation>
+        </message>
+        <message>
+            <source>The plugin or dependency file is not a valid ELF binary.</source>
+            <translation>插件或依赖文件不是有效的 ELF 文件。</translation>
+        </message>
+        <message>
+            <source>Reinstall an intact, compatible build.</source>
+            <translation>请重新安装完整且兼容的构建。</translation>
+        </message>
+        <message>
+            <source>Plugin is incompatible with this environment.</source>
+            <translation>插件与当前运行环境不兼容。</translation>
+        </message>
+        <message>
+            <source>Plugin loading was skipped by a load condition.</source>
+            <translation>插件因加载条件不满足而跳过。</translation>
+        </message>
+        <message>
+            <source>Check the supported device, process and loading conditions.</source>
+            <translation>请检查支持的设备、进程及加载条件。</translation>
+        </message>
+        <message>
+            <source>Plugin dependencies do not satisfy this operation.</source>
+            <translation>插件依赖不满足本次操作的要求。</translation>
+        </message>
+        <message>
+            <source>Check dependency availability, versions and QMD ordering.</source>
+            <translation>请检查依赖是否可用、版本及 QMD 顺序。</translation>
+        </message>
+        <message>
+            <source>Plugin activation does not match its settings.</source>
+            <translation>插件入口与启用设置不一致。</translation>
+        </message>
+        <message>
+            <source>Repair the plugin entry, then apply any pending change.</source>
+            <translation>请修复插件入口，再应用待生效的变更。</translation>
+        </message>
+        <message>
+            <source>A plugin entry conflicts with an existing path.</source>
+            <translation>插件入口与现有路径冲突。</translation>
+        </message>
+        <message>
+            <source>Inspect the conflicting path; existing files must be preserved.</source>
+            <translation>请检查冲突路径，保留已有文件。</translation>
+        </message>
+        <message>
+            <source>Settings or requested content have changed or are busy.</source>
+            <translation>设置或目标内容已变更，或正在使用中。</translation>
+        </message>
+        <message>
+            <source>Refresh and try again after the current operation finishes.</source>
+            <translation>请等待当前操作完成，刷新后重试。</translation>
+        </message>
+        <message>
+            <source>This operation would remove access to the manager.</source>
+            <translation>此操作会导致无法进入管理器。</translation>
+        </message>
+        <message>
+            <source>Keep a working manager entry enabled.</source>
+            <translation>请保留一个可用的管理器入口。</translation>
+        </message>
+        <message>
+            <source>A required service is not ready or unavailable.</source>
+            <translation>所需服务尚未就绪或不可用。</translation>
+        </message>
+        <message>
+            <source>Wait for initialization or check whether the service loaded.</source>
+            <translation>请等待初始化完成，或检查服务是否加载成功。</translation>
+        </message>
+        <message>
+            <source>The requested item is unavailable.</source>
+            <translation>目标项目不可用。</translation>
+        </message>
+        <message>
+            <source>Refresh and check whether the plugin or page is enabled.</source>
+            <translation>请刷新，并检查插件或页面是否已启用。</translation>
+        </message>
+        <message>
+            <source>A service limit has been reached.</source>
+            <translation>已达到服务处理上限。</translation>
+        </message>
+        <message>
+            <source>Release unused registrations or queued actions and check the plugin.</source>
+            <translation>请释放闲置注册或待处理操作，并检查插件。</translation>
+        </message>
+        <message>
+            <source>The action is already pending.</source>
+            <translation>该操作已在等待处理。</translation>
+        </message>
+        <message>
+            <source>Wait for the plugin to finish handling it.</source>
+            <translation>请等待插件完成处理。</translation>
+        </message>
+        <message>
+            <source>A configuration file is invalid.</source>
+            <translation>配置文件无效。</translation>
+        </message>
+        <message>
+            <source>Back up and repair the configuration; do not discard it silently.</source>
+            <translation>请备份并修复配置，不要直接丢弃原有配置。</translation>
+        </message>
+        <message>
+            <source>Page registration or object lifetime is invalid.</source>
+            <translation>页面注册或对象生命周期不正确。</translation>
+        </message>
+        <message>
+            <source>Check registration ownership, identifiers and the QML context.</source>
+            <translation>请检查注册归属、标识符及 QML 上下文。</translation>
+        </message>
+        <message>
+            <source>A required plugin file is missing.</source>
+            <translation>所需的插件文件缺失。</translation>
+        </message>
+        <message>
+            <source>Restore the missing file or reinstall the plugin.</source>
+            <translation>请恢复缺失文件或重新安装插件。</translation>
+        </message>
+        <message>
+            <source>The operation could not complete because of blocking issues.</source>
+            <translation>存在阻断问题，操作未能完成。</translation>
+        </message>
+        <message>
+            <source>Resolve the listed issues; completed installation steps are retained.</source>
+            <translation>请处理列出的问题，已完成的安装步骤会保留。</translation>
+        </message>
+        <message>
+            <source>Multiple patches target the same resource.</source>
+            <translation>多个补丁指向同一资源。</translation>
+        </message>
+        <message>
+            <source>Check whether the replacement or ordering is intentional.</source>
+            <translation>请确认替换或加载顺序是否符合预期。</translation>
+        </message>
+        <message>
+            <source>Injection stage recorded.</source>
+            <translation>已记录注入阶段状态。</translation>
+        </message>
+        <message>
+            <source>Resource registration does not prove that a settings page renders.</source>
+            <translation>资源注册成功不代表设置页面能够正确显示。</translation>
+        </message>
+        <message>
+            <source>No matching QML block was found.</source>
+            <translation>未找到匹配的 QML 区块。</translation>
+        </message>
+        <message>
+            <source>Check whether the patch matches this firmware.</source>
+            <translation>请检查补丁是否适配当前固件。</translation>
+        </message>
+        <message>
+            <source>QML injection could not be completed.</source>
+            <translation>QML 注入未能完成。</translation>
+        </message>
+        <message>
+            <source>Check patch syntax, registration timing and firmware compatibility.</source>
+            <translation>请检查补丁语法、注册时机和固件兼容性。</translation>
+        </message>
+        <message>
+            <source>Resource processing failed.</source>
+            <translation>资源处理失败。</translation>
+        </message>
+        <message>
+            <source>Check memory, resource files and rebuilder compatibility.</source>
+            <translation>请检查内存、资源文件及重建器兼容性。</translation>
+        </message>
+        <message>
+            <source>The current package state does not permit this operation.</source>
+            <translation>当前插件状态不允许此操作。</translation>
+        </message>
+        <message>
+            <source>Refresh and select an operation matching the package state.</source>
+            <translation>请刷新并选择符合当前插件状态的操作。</translation>
+        </message>
+        <message>
+            <source>Disabled, but a plugin entry could not be removed.</source>
+            <translation>已禁用，但有插件入口未能移除。</translation>
+        </message>
+        <message>
+            <source>The settings page could not be opened.</source>
+            <translation>无法打开设置页面。</translation>
+        </message>
+        <message>
+            <source>Check the navigation callback and its error details.</source>
+            <translation>请检查导航回调及其错误详情。</translation>
+        </message>
+        <message>
+            <source>The request or package declaration is invalid.</source>
+            <translation>请求或插件声明无效。</translation>
+        </message>
+        <message>
+            <source>Correct the reported field or package format.</source>
+            <translation>请修正报告的字段或安装包格式。</translation>
+        </message>
+        <message>
+            <source>A file operation failed.</source>
+            <translation>文件操作失败。</translation>
+        </message>
+        <message>
+            <source>Check permissions, free space, file integrity and the original error.</source>
+            <translation>请检查权限、剩余空间、文件完整性和原始错误。</translation>
+        </message>
+        <message>
+            <source>Operation failed.</source>
+            <translation>操作失败。</translation>
+        </message>
+        <message>
+            <source>Check the details before trying again.</source>
+            <translation>请查看详情后再重试。</translation>
+        </message>
+    </context>
     <context>
         <name>LauncherEntries</name>
         <message>
@@ -10,7 +268,10 @@
     </context>
     <context>
         <name>Manager</name>
-        <message><source>Warnings</source><translation>警告</translation></message>
+        <message>
+            <source>Warnings</source>
+            <translation>警告</translation>
+        </message>
         <message>
             <source>Navigation rejected</source>
             <translation>导航请求被拒绝</translation>
@@ -32,10 +293,6 @@
             <translation>未加载</translation>
         </message>
         <message>
-            <source>Not scanned</source>
-            <translation>未扫描</translation>
-        </message>
-        <message>
             <source>Active</source>
             <translation>已激活</translation>
         </message>
@@ -48,10 +305,6 @@
             <translation>启用状态需要修复</translation>
         </message>
         <message>
-            <source>Restart required</source>
-            <translation>需要重启</translation>
-        </message>
-        <message>
             <source>Page unavailable</source>
             <translation>页面不可用</translation>
         </message>
@@ -62,10 +315,6 @@
         <message>
             <source>Activation repaired</source>
             <translation>启用状态已修复</translation>
-        </message>
-        <message>
-            <source>Unable to repair activation. Open diagnostics for details.</source>
-            <translation>无法修复启用状态，请查看诊断详情。</translation>
         </message>
         <message>
             <source>Unable to save</source>
@@ -96,18 +345,6 @@
             <translation>原生</translation>
         </message>
         <message>
-            <source>Needs repair</source>
-            <translation>需要修复</translation>
-        </message>
-        <message>
-            <source>Restart</source>
-            <translation>重启</translation>
-        </message>
-        <message>
-            <source>Loaded</source>
-            <translation>已加载</translation>
-        </message>
-        <message>
             <source>Enabled</source>
             <translation>已启用</translation>
         </message>
@@ -130,6 +367,14 @@
         <message>
             <source>Manage shortcuts</source>
             <translation>管理快捷入口</translation>
+        </message>
+        <message>
+            <source>Load skipped</source>
+            <translation>已跳过加载</translation>
+        </message>
+        <message>
+            <source>A saved change is pending. Restart applies the change; it does not fix the reported error.</source>
+            <translation>有已保存的变更待生效。重启用于应用变更，不能修复上述错误。</translation>
         </message>
         <message>
             <source>Refresh</source>
@@ -380,8 +625,24 @@
             <translation>无法打开此插件的设置页面。</translation>
         </message>
         <message>
-            <source>Update the plugin, then restart xochitl.</source>
-            <translation>请更新插件，然后重启 xochitl。</translation>
+            <source>Reopen the page. If this repeats, the plugin must fix its page lifetime.</source>
+            <translation>请重新打开页面。若反复出现，需要插件修复页面生命周期。</translation>
+        </message>
+        <message>
+            <source>Install a plugin version compatible with this firmware.</source>
+            <translation>请安装兼容当前固件的插件版本。</translation>
+        </message>
+        <message>
+            <source>Restore the missing QML component or resource.</source>
+            <translation>请恢复缺失的 QML 组件或资源。</translation>
+        </message>
+        <message>
+            <source>Check whether the plugin and its page are still available, then reopen it.</source>
+            <translation>请确认插件和页面仍然可用，再重新打开。</translation>
+        </message>
+        <message>
+            <source>Check the QML error details and update the plugin if needed.</source>
+            <translation>请查看 QML 错误详情，必要时更新插件。</translation>
         </message>
     </context>
     <context>
