@@ -48,8 +48,12 @@ error-handling change does not redesign existing controls.
 
 ## Runtime language synchronization
 
-Both firmware adapters observe `LanguageAndKeyboard.languageSettings.languageCode`
-and pass its initial value and subsequent changes to `ManagerNavigation.setNativeLanguage`.
+Both firmware adapters observe the native `languageSettings.languageCode` model.
+`LocalizationShortcut` connects it during native localization initialization;
+`LanguageAndKeyboard` and `LanguageSelector` also connect their initial value and
+changes to `ManagerNavigation.setNativeLanguage`. Opening Language settings is
+not required for initial synchronization. These adapters observe the same native
+model, rather than independently choosing a language.
 This updates the session's `xoviNativeUiLanguage` property; the SDK language service
 reloads registered catalogs and retranslates attached engines. No settings page
 recreation, config-file write or xochitl restart is required. The last observed
@@ -59,3 +63,39 @@ The configuration file is the startup fallback, not the live authority. Newly
 opened plugin engines cannot reset the session language to their default English.
 Consumers of the header-only helper must be rebuilt with the updated SDK; this
 does not translate plugins that use their own unrelated localization mechanism.
+
+### Diagnosing a language mismatch
+
+Use xochitl's `rm.localization.language` / `Activated translation: ...` log to
+check the actual native selection. `LANG=en_US.UTF-8` is an OS locale, not proof
+that the UI is English. The manager logs `[extension-manager-ui] native language:`
+when its native adapter observes a new selection.
+
+There are three independent selectors in the current workspace:
+
+| Owner | Language selection |
+| --- | --- |
+| xochitl | Native `LanguageSettings.languageCode` |
+| SDK consumers (manager-ui and migrated plugins) | Native session value first; config fallback until observed; environment/system fallback only if no config/session value |
+| AppLoad | `APP_LOCALE`, then `LANG`, then `/data/xochitl.conf`, then system locale |
+
+AppLoad is an independent loader, not the language authority for manager-ui.
+Plugin catalogs are separate resources, not separate language selectors.
+
+On the inspected 3.27.3.0 device, xochitl logged `Activated translation: en`, but
+`/home/root/.config/remarkable/xochitl.conf` contained `Language=zh_CN`, and
+`/data/xochitl.conf` did not exist (including in xochitl's mount namespace).
+The installed manager-ui lacked `setNativeLanguage`, so the legacy config fallback
+selected Chinese. Updating only a QML page cannot update that older native binary.
+The runtime bridge fixes this discrepancy without modifying the user's config.
+Rebuild/deploy SDK consumers together so an older plugin cannot instantiate an
+older shared language service first.
+
+## Pinned entry capacity
+
+Pinned entries use the native layout's remaining extent and native control size.
+There is no fixed one-entry page or three-entry bottom-bar limit. Only real
+overflow adds a page action, and that action occupies one of the available slots.
+If just one slot remains, it opens the Extensions inventory instead of creating
+an extra control outside the available space. No available slot means no injected
+control; the separate Extensions settings entry remains independently managed.

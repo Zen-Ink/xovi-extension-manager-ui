@@ -414,7 +414,10 @@ int main(int argc,char **argv) {
     check(pinnedOwner=="example" && pinnedPage=="main" && pinnedSource=="bottom","native bottom PIN dispatches its provider and page");
     shortcuts->setProperty("entries",QVariantList{QVariantMap{{"id","one"},{"pageId","main"},{"title","One"}},QVariantMap{{"id","two"},{"pageId","main"},{"title","Two"}}});
     QCoreApplication::processEvents();
-    check(shortcuts->property("pageCount").toInt()==2 && shortcutItem->implicitWidth()==184, "bottom paging occupies a second native action slot including spacing");
+    check(shortcutItem->implicitWidth()==80, "overflow never consumes a second slot when only one fits");
+    shortcuts->setProperty("slots", 2);
+    check(shortcuts->property("pageCount").toInt()==1 && shortcutItem->implicitWidth()==184, "two pinned entries both appear when two native slots fit");
+    shortcuts->setProperty("slots", -1);
     shortcuts->setProperty("location", "sidebar");
     QCoreApplication::processEvents();
     check(visualChild(shortcutItem,"nativeSidebarPin"), "sidebar pin uses native SidebarItem");
@@ -432,6 +435,50 @@ int main(int argc,char **argv) {
     shortcuts->setProperty("excludedPages",QStringList{"example/main"});
     QMetaObject::invokeMethod(shortcuts.data(),"refresh");
     check(shortcuts->property("count").toInt()==0, "settings launcher excludes separately rendered Extensions entry");
+    QQmlComponent pinLayout(&engine);
+    pinLayout.setData(R"(import QtQuick
+import QtQuick.Layouts
+Item {
+    width: 320; height: 480
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+        Item { implicitHeight: 96; Layout.fillWidth: true }
+        Loader {
+            objectName: "capacityLoader"
+            Layout.fillWidth: true
+            Layout.preferredHeight: item ? item.implicitHeight : 0
+            source: "qrc:/xovi/manager/LauncherEntries.qml"
+        }
+        Item { Layout.fillHeight: true }
+    }
+})", QUrl("qrc:/pin-capacity.qml"));
+    QScopedPointer<QObject> pinViewport(pinLayout.create());
+    check(bool(pinViewport), "native-style sidebar capacity layout loads");
+    auto *capacityLoader=pinViewport->findChild<QObject *>("capacityLoader");
+    auto *capacityPins=capacityLoader->property("item").value<QObject *>();
+    check(capacityPins!=nullptr, "sidebar capacity fixture loads real launcher component");
+    capacityPins->setProperty("entries",QVariantList{
+        QVariantMap{{"id","one"},{"pageId","main"},{"title","One"}},
+        QVariantMap{{"id","two"},{"pageId","main"},{"title","Two"}},
+        QVariantMap{{"id","three"},{"pageId","main"},{"title","Three"}}});
+    QQuickWindow pinWindow;
+    qobject_cast<QQuickItem *>(pinViewport.data())->setParentItem(pinWindow.contentItem());
+    pinWindow.show();
+    auto resizePins=[&](int height) {
+        pinViewport->setProperty("height",height);
+        for(int i=0;i<20;++i) { QCoreApplication::processEvents();QThread::msleep(2); }
+    };
+    resizePins(480);
+    check(capacityPins->property("capacity").toInt()==4 && !capacityPins->property("overflow").toBool(), "sidebar displays all pins when native siblings leave enough space");
+    resizePins(288);
+    check(capacityPins->property("capacity").toInt()==2 && capacityPins->property("perPage").toInt()==1, "sidebar resizing reserves overflow control within two remaining slots");
+    resizePins(192);
+    check(capacityPins->property("capacity").toInt()==1, "narrow viewport never allocates a second overflow slot");
+    resizePins(96);
+    check(capacityPins->property("capacity").toInt()==0, "no remaining viewport space does not create overflowing controls");
+    resizePins(480);
+    check(!capacityPins->property("overflow").toBool(), "expanding viewport removes unnecessary pagination");
     manager->setProperty("mode", "notifications");
     auto *managerDrawer=visualChild(managerItem,"notificationDrawer");
     check(managerDrawer!=nullptr,"manager uses the same notification list drawer");
@@ -594,6 +641,9 @@ int main(int argc,char **argv) {
     check(!managerItem->isVisible(),"closing a shortcut-launched page returns to its caller without showing manager inventory");
     QObject::disconnect(connection);
     QObject::disconnect(apiConnection);
+    // Reproduce the device: stale Chinese config, native runtime already English.
+    { QFile config(languagePath);check(config.open(QIODevice::WriteOnly|QIODevice::Truncate),"write stale Chinese config");config.write("[General]\nLanguage=zh_CN\n"); }
+    for(int i=0;i<10;++i) { QCoreApplication::processEvents(); QThread::msleep(2); }
     // Mirror the firmware adapter's property binding and signal, not a config-file write.
     QQmlComponent languageAdapter(&engine);
     languageAdapter.setData(R"(import QtQuick
@@ -611,6 +661,8 @@ Item {
     check(bool(adapter),"native language adapter creates successfully");
     auto *languageModel=adapter->property("languageSettings").value<QObject *>();
     ManagerBridge liveLanguageBridge;
+    for(int i=0;i<10;++i) { QCoreApplication::processEvents(); QThread::msleep(2); }
+    check(liveLanguageBridge.uiLanguage()=="en", "initial native English overrides stale Chinese config without opening a language selector");
     for(const auto &language:QStringList{"zh_CN","zh_TW","en"}) {
         languageModel->setProperty("languageCode",language);
         for(int i=0;i<10;++i) { QCoreApplication::processEvents(); QThread::msleep(2); }

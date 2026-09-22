@@ -103,7 +103,10 @@ extern "C" char *xem_open_settings(const char *request) {
 void ManagerNavigation::setNativeLanguage(const QString &language) {
     if(language.trimmed().isEmpty()) return;
     auto *app=QCoreApplication::instance();
-    if(app) app->setProperty("xoviNativeUiLanguage",language);
+    if(app && app->property("xoviNativeUiLanguage").toString()!=language) {
+        qInfo().noquote() << "[extension-manager-ui] native language:" << language;
+        app->setProperty("xoviNativeUiLanguage",language);
+    }
 }
 ManagerNavigation *ManagerNavigation::shared() {
     static auto *navigation=new ManagerNavigation(QCoreApplication::instance());

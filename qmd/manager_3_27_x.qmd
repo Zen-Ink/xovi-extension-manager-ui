@@ -219,7 +219,7 @@ AFFECT /qt/qml/xofm/libs/homescreen/qml/CreateMenu.qml
                     "popupOverlay": Qt.binding(function() { return root.popupOverlay }),
                     "anchorTarget": root,
                     "currentView": Qt.binding(function() { return root.view }),
-                    "slots": Qt.binding(function() { return Math.max(1, Math.min(3, Math.floor(((root.parent ? root.parent.width : root.width) - 480) / 104))) })
+                    "availableExtent": Qt.binding(function() { return root.parent ? Math.max(0, root.parent.width - root.horizontalPadding * 2) : 0 })
                 })
             }
         }
@@ -282,6 +282,7 @@ AFFECT /qt/qml/xofm/modules/settings/qml/QuickSettingsWindow.qml
     END TRAVERSE
 END AFFECT
 AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleColumn.qml
+    IMPORT QtQuick.Window 2.15
     IMPORT org.xovi.Manager 1.0
     TRAVERSE ColumnLayout#root
         LOCATE AFTER Repeater
@@ -298,6 +299,10 @@ AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleColumn.qml
                 source: "qrc:/xovi/manager/LauncherEntries.qml"
                 onLoaded: {
                     item.location = "quick"
+                    item.availableExtent = Qt.binding(function() {
+                        var window = item.Window.window
+                        return window ? Math.max(0, window.height - root.mapToItem(null, 0, 0).y - 64) : 0
+                    })
                     item.excludedPages = ["xovi-extension-manager/notifications"]
                     item.refresh()
                 }
@@ -341,6 +346,7 @@ AFFECT /qt/qml/xofm/modules/orientationsensor/qml/LockOrientationToggle.qml
 END AFFECT
 
 AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
+    IMPORT QtQuick.Window 2.15
     IMPORT org.xovi.Manager 1.0
     TRAVERSE GridLayout#root
         LOCATE AFTER Repeater
@@ -357,6 +363,10 @@ AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
                 source: "qrc:/xovi/manager/LauncherEntries.qml"
                 onLoaded: {
                     item.location = "quick"
+                    item.availableExtent = Qt.binding(function() {
+                        var window = item.Window.window
+                        return window ? Math.max(0, window.height - root.mapToItem(null, 0, 0).y - 64) : 0
+                    })
                     item.excludedPages = ["xovi-extension-manager/notifications"]
                     item.refresh()
                 }
@@ -381,6 +391,32 @@ AFFECT /qml/device/view/settings/LanguageAndKeyboard.qml
                 onNativeLanguageChanged: ManagerNavigation.setNativeLanguage(nativeLanguage)
                 Component.onCompleted: ManagerNavigation.setNativeLanguage(nativeLanguage)
             }
+        }
+    END TRAVERSE
+END AFFECT
+
+AFFECT /qt/qml/xofm/modules/localization/qml/LocalizationShortcut.qml
+    IMPORT QtQuick 2.15
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE KYBD.Shortcut#root
+        LOCATE AFTER ALL
+        INSERT {
+            property string xoviNativeLanguage: root.languageSettings ? root.languageSettings.languageCode : ""
+            onXoviNativeLanguageChanged: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)
+            Component.onCompleted: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)
+        }
+    END TRAVERSE
+END AFFECT
+
+AFFECT /qt/qml/xofm/libs/localization/qml/LanguageSelector.qml
+    IMPORT QtQuick 2.15
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE ListView#root
+        LOCATE AFTER ALL
+        INSERT {
+            property string xoviNativeLanguage: root.languageSettings ? root.languageSettings.languageCode : ""
+            onXoviNativeLanguageChanged: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)
+            Component.onCompleted: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)
         }
     END TRAVERSE
 END AFFECT

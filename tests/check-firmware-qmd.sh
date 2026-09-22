@@ -32,7 +32,9 @@ affected = ("qml/device/view/settings/Settings.qml",
             "qt/qml/xofm/modules/settings/qml/quicksettings/AirplaneToggle.qml",
             "qt/qml/xofm/modules/screenshare/qml/ScreenShareToggle.qml",
             "qt/qml/xofm/modules/orientationsensor/qml/LockOrientationToggle.qml",
-            "qml/device/view/settings/LanguageAndKeyboard.qml")
+            "qml/device/view/settings/LanguageAndKeyboard.qml",
+            "qt/qml/xofm/modules/localization/qml/LocalizationShortcut.qml",
+            "qt/qml/xofm/libs/localization/qml/LanguageSelector.qml")
 
 for version, qmd_name, label_guard in cases:
     source = workspace / "xochitl_rcc" / ("rcc_" + version)
@@ -47,6 +49,10 @@ for version, qmd_name, label_guard in cases:
         language = (output / "qml/device/view/settings/LanguageAndKeyboard.qml").read_text()
         assert "root.languageSettings.languageCode" in language
         assert "onNativeLanguageChanged: ManagerNavigation.setNativeLanguage(nativeLanguage)" in language
+        for native in affected[-2:]:
+            adapter = (output / native).read_text()
+            assert "root.languageSettings.languageCode" in adapter
+            assert "onXoviNativeLanguageChanged: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)" in adapter
         settings = (output / affected[0]).read_text()
         assert 'ManagerNavigation.registerSettingsHost(xoviManagerLoader)' in settings
         assert 'xoviManagerLoader.openEntry(owner, page, source)' in settings

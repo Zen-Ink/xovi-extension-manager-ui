@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 import ark.controls as ArkControls
 import xofm.libs.homescreen as Homescreen
 import org.xovi.Manager 1.0
@@ -7,7 +8,30 @@ import org.xovi.Manager 1.0
 Item {
     id: root
     property string location: "sidebar"
-    property int slots: 2
+    // -1 means derive capacity from the native layout, not an arbitrary page size.
+    property int slots: -1
+    property var layoutHost: parent ? parent.parent : null
+    property real availableExtent: location === "bottom" ? -1 : layoutHost ? layoutHost.height : -1
+    readonly property real entryExtent: location === "bottom" ? 80 : metrics.item ? metrics.item.implicitHeight : 0
+    readonly property int capacity: slots >= 0 ? slots : measuredCapacity()
+    function measuredCapacity() {
+        if (!layoutHost || availableExtent < 0 || entryExtent <= 0) return count
+        var horizontal = location === "bottom"
+        var spacing = horizontal ? layoutHost.spacing || 0 : layoutHost.rowSpacing || layoutHost.spacing || 0
+        var used = 0
+        var children = layoutHost.children
+        for (var i = 0; i < children.length; ++i) {
+            var child = children[i]
+            if (child === root.parent || !child.visible) continue
+            var preferred = horizontal ? child.Layout.preferredWidth : child.Layout.preferredHeight
+            var implicit = horizontal ? child.implicitWidth : child.implicitHeight
+            var minimum = horizontal ? child.Layout.minimumWidth : child.Layout.minimumHeight
+            var extent = Math.max(minimum || 0, preferred >= 0 ? preferred : implicit || 0)
+            if (extent <= 0) continue // Repeater and flexible spacers consume no fixed extent.
+            used += extent + spacing + (horizontal ? child.Layout.leftMargin + child.Layout.rightMargin : child.Layout.topMargin + child.Layout.bottomMargin)
+        }
+        return Math.max(0, Math.floor((availableExtent - used + spacing) / (entryExtent + spacing)))
+    }
     property var popupOverlay: null
     property var anchorTarget: root
     property string currentView: "myfiles"
@@ -16,10 +40,13 @@ Item {
     property var entries: []
     property int pageIndex: 0
     readonly property int count: entries.length
-    readonly property int perPage: location !== "bottom" ? 1 : Math.max(1, slots)
+    readonly property bool overflow: count > capacity
+    readonly property int perPage: Math.max(1, capacity - (overflow ? 1 : 0))
     readonly property int pageCount: Math.max(1, Math.ceil(count / perPage))
     readonly property var visibleEntries: entries.slice(pageIndex * perPage, (pageIndex + 1) * perPage)
-    readonly property var displayedEntries: pageCount > 1 ? visibleEntries.concat([{nextPage: true, title: qsTr("More pinned entries")}]) : visibleEntries
+    readonly property var displayedEntries: capacity <= 0 ? [] : !overflow ? entries : capacity === 1
+        ? [{nextPage: true, title: qsTr("More pinned entries")}]
+        : visibleEntries.concat([{nextPage: true, title: qsTr("More pinned entries")}])
     signal activated()
     implicitWidth: location === "bottom" ? Math.max(0, displayedEntries.length * 104 - 24) : 80
     implicitHeight: count === 0 ? 0 : grid.implicitHeight
@@ -35,7 +62,13 @@ Item {
         return entry.iconSource || "qrc:/ark/icons/puzzle"
     }
     function activate(entry) {
-        if (entry.nextPage) { pageIndex = (pageIndex + 1) % pageCount; return }
+        if (entry.nextPage) {
+            if (capacity === 1) {
+                ManagerNavigation.openSettings("xovi-extension-manager", "inventory", root.location)
+                activated()
+            } else pageIndex = (pageIndex + 1) % pageCount
+            return
+        }
         ManagerNavigation.openSettings(entry.id, entry.pageId, root.location)
         activated()
     }
@@ -70,6 +103,14 @@ Item {
             iconSource: root.iconFor(entry)
             onActionClicked: root.activate(entry)
         }
+    }
+    Loader {
+        id: metrics
+        visible: false
+        property var entry: ({})
+        width: root.width
+        onLoaded: item.objectName = "pinMetrics"
+        sourceComponent: root.location === "quick" ? quickEntry : root.location === "bottom" ? bottomEntry : sidebarEntry
     }
     GridLayout {
         id: grid
