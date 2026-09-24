@@ -29,3 +29,10 @@ extern "C" void _xovi_construct() {
         if(result) {qInfo("[extension-manager-ui] %s",result);api->freeString(result);}
     }
 }
+
+extern "C" bool override$_ZN16QCoreApplication17installTranslatorEP11QTranslator(QTranslator *translator) {
+    auto original=reinterpret_cast<bool (*)(QTranslator *)>($_ZN16QCoreApplication17installTranslatorEP11QTranslator);
+    const bool installed=original(translator);
+    if (installed) ManagerNavigation::observeNativeTranslator(translator);
+    return installed;
+}

@@ -48,48 +48,45 @@ error-handling change does not redesign existing controls.
 
 ## Runtime language synchronization
 
-Both firmware adapters observe the native `languageSettings.languageCode` model.
-`LocalizationShortcut` connects it during native localization initialization;
-`LanguageAndKeyboard` and `LanguageSelector` also connect their initial value and
-changes to `ManagerNavigation.setNativeLanguage`. Opening Language settings is
-not required for initial synchronization. These adapters observe the same native
-model, rather than independently choosing a language.
-This updates the session's `xoviNativeUiLanguage` property; the SDK language service
-reloads registered catalogs and retranslates attached engines. No settings page
-recreation, config-file write or xochitl restart is required. The last observed
-native value remains authoritative after the native settings page closes.
+Manager-ui observes Qt's successful `QCoreApplication::installTranslator` call,
+then identifies xochitl's native `reMarkable_*.qm` translator and reads its
+`QTranslator::language()` metadata in memory. The original Qt operation and its
+return value are preserved. Plugin translators cannot select the native locale.
 
-The configuration file is the startup fallback, not the live authority. Newly
-opened plugin engines cannot reset the session language to their default English.
-Consumers of the header-only helper must be rebuilt with the updated SDK; this
-does not translate plugins that use their own unrelated localization mechanism.
+The SDK follows only that in-process native value. It does not read xochitl.conf,
+APP_LOCALE, LANG, or a new engine's default locale. `ManagerBridge.uiLanguageReady`
+is false and `uiLanguage` is empty until the native translator is observed.
+First observation and runtime language changes retranslate all attached engines.
+Each plugin continues to own its translation files. Rebuild SDK consumers and
+manager-ui together; older installed binaries can retain the old fallback code.
 
-### Diagnosing a language mismatch
+### Device findings, 2026-09-23
 
-Use xochitl's `rm.localization.language` / `Activated translation: ...` log to
-check the actual native selection. `LANG=en_US.UTF-8` is an OS locale, not proof
-that the UI is English. The manager logs `[extension-manager-ui] native language:`
-when its native adapter observes a new selection.
+The device did contain the updated binary, including `setNativeLanguage`, the
+new QMD hooks and the `native language:` logging string. Xochitl logged
+`Activated translation: en`, but no manager native-language observation appeared.
+The previous QMD hooks depended on language UI components being instantiated;
+resource patch acceptance did not prove those hooks ran. They have been removed.
+The old SDK then read stale `Language=zh_CN`, which explains Chinese labels and
+the translated Extensions entry despite native English. This was an incomplete
+startup adapter, not simply a failure to update the plugin.
 
-There are three independent selectors in the current workspace:
+The native English resource supplied in the firmware contains `language=en_US`.
+The Qt translator observer reads that actual metadata, without waiting for the
+Language page, changing configuration or inferring language from translated text.
+Verify the resulting `native language:` log after a future authorized build and
+deployment. This source update has not yet been compiled or tested on-device.
 
-| Owner | Language selection |
-| --- | --- |
-| xochitl | Native `LanguageSettings.languageCode` |
-| SDK consumers (manager-ui and migrated plugins) | Native session value first; config fallback until observed; environment/system fallback only if no config/session value |
-| AppLoad | `APP_LOCALE`, then `LANG`, then `/data/xochitl.conf`, then system locale |
+AppLoad still has its own independent environment-first selector; that selector
+is not used by manager-ui or the SDK helper.
 
-AppLoad is an independent loader, not the language authority for manager-ui.
-Plugin catalogs are separate resources, not separate language selectors.
+### Default PINs
 
-On the inspected 3.27.3.0 device, xochitl logged `Activated translation: en`, but
-`/home/root/.config/remarkable/xochitl.conf` contained `Language=zh_CN`, and
-`/data/xochitl.conf` did not exist (including in xochitl's mount namespace).
-The installed manager-ui lacked `setNativeLanguage`, so the legacy config fallback
-selected Chinese. Updating only a QML page cannot update that older native binary.
-The runtime bridge fixes this discrepancy without modifying the user's config.
-Rebuild/deploy SDK consumers together so an older plugin cannot instantiate an
-older shared language service first.
+NFJ ASK AI and rmfakecloud-control declare zero default locations. On the inspected
+device, both already had `settings=true` saved in `launchers.json`; cloud's current
+provider/manifest did not itself request a default pin. Saved records do not record
+whether their historical origin was a default or a manual choice. Changing defaults
+applies to first discovery only and does not silently clear these existing records.
 
 ## Pinned entry capacity
 
@@ -99,3 +96,14 @@ overflow adds a page action, and that action occupies one of the available slots
 If just one slot remains, it opens the Extensions inventory instead of creating
 an extra control outside the available space. No available slot means no injected
 control; the separate Extensions settings entry remains independently managed.
+
+
+### 设置页面的返回路径
+
+打开插件设置时保存当前管理器页面（列表、详情、通知或另一个插件页）。页面调用 `settingsContext.close()` 与管理器 Back 使用同一返回历史，优先恢复上一个页面；只有已退到入口根页面时才关闭入口层。首次由 QMD Loader 展示的页面作为根页面，后续打开请求不会覆盖原入口。插件页面返回后会重新创建，插件内部未保存的表单状态不属于当前导航历史的保存范围。
+
+### 3.27 底栏 PIN 更新
+
+3.27 的原生 CreateMenu 使用 `sidePadding`，3.28 使用 `horizontalPadding`。底栏注入必须引用对应版本的属性，否则可用宽度为 NaN，入口容量计算失效。LauncherEntries 也对无效测量值采取与“尚未取得尺寸”相同的处理，避免静默丢失入口。
+
+`tests/check-bottom-pin-runtime.py` 将 QMD 应用于对应固件的 CreateMenu，并运行实际 LauncherEntries，检查主页隐藏期间增删 PIN、恢复显示、清空后重新添加以及原生搜索入口的可见性变化。C++ 管理器和原生 Action 使用测试替身，不代表已部署实机验证。

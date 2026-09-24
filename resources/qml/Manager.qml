@@ -18,6 +18,7 @@ Rectangle {
     property var packages: []
     property var pages: []
     property var selectedPage: ({})
+    property var pageHistory: []
     property var selectedPackage: ({})
     property var uiStates: ({})
     property string message: ""
@@ -144,12 +145,28 @@ Rectangle {
         if (actions.indexOf("disableLegacy") >= 0) return "disableLegacy"
         return ""
     }
-    function showPage(page) { mode = "list"; message = ""; messageDetails = ""; errorPage = 0; errorDetails = false; selectedPage = page }
-    function openEntry(id, pageId) {
-        if (id === "xovi-extension-manager" && pageId === "notifications") { selectedPage = ({}); mode = "notifications"; return }
-        if (id === "xovi-extension-manager" && pageId === "inventory") { selectedPage = ({}); mode = "list"; return }
+    function rememberPage(replaceRoot) {
+        if (replaceRoot) pageHistory = []
+        else pageHistory = pageHistory.concat([{page: selectedPage, mode: mode, pkg: selectedPackage}])
+    }
+    function restorePage() {
+        if (!pageHistory.length) return false
+        var previous = pageHistory[pageHistory.length - 1]
+        pageHistory = pageHistory.slice(0, -1)
+        selectedPackage = previous.pkg
+        mode = previous.mode
+        selectedPage = previous.page
+        return true
+    }
+    function showPage(page, replaceRoot) {
+        rememberPage(replaceRoot)
+        mode = "list"; message = ""; messageDetails = ""; errorPage = 0; errorDetails = false; selectedPage = page
+    }
+    function openEntry(id, pageId, replaceRoot) {
+        if (id === "xovi-extension-manager" && pageId === "notifications") { rememberPage(replaceRoot); selectedPage = ({}); mode = "notifications"; return }
+        if (id === "xovi-extension-manager" && pageId === "inventory") { rememberPage(replaceRoot); selectedPage = ({}); mode = "list"; return }
         var page = pages.filter(function(p) { return p.id === id && p.pageId === pageId && p.available })[0]
-        if (page) showPage(page)
+        if (page) showPage(page, replaceRoot)
         else message = root.translate(QT_TR_NOOP("Page unavailable"))
     }
     function openPins(page) {
@@ -188,6 +205,7 @@ Rectangle {
         else { refresh(); ManagerNavigation.notifyLaunchersChanged() }
     }
     function closePage() {
+        if (restorePage()) return
         if (initialOwner) {
             if (parent && parent.active !== undefined) parent.active = false
             else root.visible = false
@@ -198,6 +216,7 @@ Rectangle {
         message = ""
         if (mode === "pins") { mode = pinPreviousMode; pinTarget = ({}) }
         else if (selectedPage.id) closePage()
+        else if (restorePage()) return
         else if (mode !== "list") mode = "list"
         else if (parent && parent.active !== undefined) parent.active = false
     }
@@ -238,6 +257,7 @@ Rectangle {
                 iconSource: "qrc:/xovi/manager/icons/" + modelData.icon + ".svg"
                 highlighted: !root.selectedPage.id && root.mode === modelData.id
                 onTriggered: {
+                    root.pageHistory = []
                     root.selectedPage = ({})
                     if (modelData.id === "pins") root.openPins({})
                     else { root.mode = modelData.id; root.refresh(); NotificationStore.refresh() }
@@ -474,5 +494,5 @@ Rectangle {
             }
         }
     }
-    Component.onCompleted: { refresh(); if (initialOwner) openEntry(initialOwner, initialPageId) }
+    Component.onCompleted: { refresh(); if (initialOwner) openEntry(initialOwner, initialPageId, true) }
 }

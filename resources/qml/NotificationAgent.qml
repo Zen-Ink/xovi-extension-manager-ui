@@ -47,7 +47,7 @@ Item {
             anchors.margins: 16; spacing: 8
             RowLayout {
                 Layout.fillWidth: true
-                ELabel { Layout.fillWidth: true; text: banner.entry.title || ""; maximumLineCount: 1; elide: Text.ElideRight; font.bold: true }
+                ELabel { Layout.fillWidth: true; text: banner.entry.title || ""; maximumLineCount: 1; elide: Text.ElideRight; emphasized: true }
                 EButton { iconName: "close"; description: qsTr("Hide notification"); onClicked: NotificationStore.hideToast() }
             }
             ELabel { Layout.fillWidth: true; text: banner.entry.message || ""; maximumLineCount: 2; elide: Text.ElideRight }

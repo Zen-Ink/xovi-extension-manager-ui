@@ -25,7 +25,7 @@ static bool sidebarPin=true, bottomPin=true, nativeSidebar=true, settingsPin=tru
 static QString lastLifecycleCommand, lastLifecycleId;
 static QJsonObject mockRuntimePages;
 static char *mockBroker(const char *signal,const char *request,int *hits) {
-    const QMap<QString,QString> commands{{"notificationsPost","post"},{"notificationsList","list"},{"notificationsRead","markRead"},{"notificationsDismiss","dismiss"},{"notificationsClear","clear"},{"notificationsActionInvoke","actionInvoke"},{"notificationsPollActions","pollActions"}};
+    const QMap<QString,QString> commands{{"notificationsPost","post"},{"notificationsList","list"},{"notificationsRead","markRead"},{"notificationsDismiss","dismiss"},{"notificationsClear","clear"},{"notificationsActionInvoke","actionInvoke"},{"notificationsAcknowledge","acknowledge"}};
     const auto name=QString::fromUtf8(signal).section('$',1);
     if(commands.contains(name)) { *hits=1;return strdup(notificationCommand(commands[name].toStdString(),request).c_str()); }
     *hits=1;
@@ -64,7 +64,7 @@ static char *mockBroker(const char *signal,const char *request,int *hits) {
     }
     *hits=1;return strdup("{\"ok\":true,\"revision\":0,\"values\":{},\"packages\":[],\"pages\":[],\"results\":[]}");
 }
-extern "C" {const void *LINKTABLEVALUES[]={nullptr,nullptr,nullptr,reinterpret_cast<const void *>(mockBroker),nullptr};}
+extern "C" {const void *LINKTABLEVALUES[32]={};}
 static void check(bool b,const char *message){if(!b){std::fprintf(stderr,"FAIL %s\n",message);std::exit(1);}std::printf("PASS %s\n",message);}
 static QQuickItem *visualChild(QQuickItem *parent, const QString &name) {
     if(parent->objectName()==name) return parent;
@@ -74,10 +74,13 @@ static QQuickItem *visualChild(QQuickItem *parent, const QString &name) {
 static void settle(SettingsHost *h){QElapsedTimer t;t.start();while(h->state()=="loading" && t.elapsed()<3000){QCoreApplication::processEvents();QThread::msleep(1);}}
 int main(int argc,char **argv) {
     QGuiApplication app(argc,argv);
+    LINKTABLEVALUES[TEST_BROKER_SLOT]=reinterpret_cast<const void *>(mockBroker);
+    LINKTABLEVALUES[TEST_NOTIFICATIONS_SLOT]=reinterpret_cast<const void *>(xem_notifications_get_api);
     QTemporaryDir languageDir;
     const auto languagePath=languageDir.path()+"/xochitl.conf";
     qputenv("XOVI_LANGUAGE_SETTINGS",languagePath.toUtf8());
     { QFile config(languagePath);check(config.open(QIODevice::WriteOnly),"open language fixture");config.write("[General]\nLanguage=en\n"); }
+    app.setProperty("xoviNativeUiLanguage","en");
     QQmlEngine engine;
     engine.addImportPath(QString::fromLocal8Bit(argv[1])+"/xovi-extension-manager-ui/tests/mocks");
     qmlRegisterSingletonType<ManagerNavigation>("org.xovi.Manager",1,0,"ManagerNavigation",[](QQmlEngine *,QJSEngine *) -> QObject * { auto *navigation=ManagerNavigation::shared(); QQmlEngine::setObjectOwnership(navigation,QQmlEngine::CppOwnership); return navigation; });
@@ -139,6 +142,30 @@ int main(int argc,char **argv) {
     QScopedPointer<QObject> object(host.create());
     if(!object) qWarning()<<host.errors();
     auto *h=qobject_cast<SettingsHost *>(object.data());check(h,"host instantiated");
+    QVariantMap geometryPage{{"id","geometry"},{"pageId","main"},{"available",true},{"kind","inline"},
+        {"baseUrl","qrc:/test/Geometry.qml"},{"source",R"(
+            import QtQuick
+            Item {
+                objectName: "geometryRoot"
+                required property var settingsContext
+                property real completedWidth: -1
+                property real completedHeight: -1
+                property bool completedWithParent: false
+                Component.onCompleted: {
+                    completedWidth = width; completedHeight = height;
+                    completedWithParent = parent !== null;
+                }
+            }
+        )"}};
+    for(int attempt=0; attempt<3; ++attempt) {
+        h->setPage(geometryPage);settle(h);
+        auto *child=visualChild(h,"geometryRoot");
+        check(h->state()=="ready" && child && child->property("completedWidth").toReal()==800
+            && child->property("completedHeight").toReal()==600
+            && child->property("completedWithParent").toBool(),
+            "reopened page completes with parent and viewport already set");
+        h->setPage({});
+    }
     // Direct pages have no provider registration or settingsContext requirement.
     QVariantMap deliveredPage;
     auto directConnection=QObject::connect(sharedNavigation,&ManagerNavigation::pageOpenRequested,[&](const QVariantMap &p) { deliveredPage=p; });
@@ -380,15 +407,18 @@ int main(int argc,char **argv) {
     check(progressBar && progressBar->property("value").toDouble()==0.6, "displayed progress follows the same notification");
     int delivered = 0;
     QObject::connect(context, &SettingsContext::notificationAction, [&](const QVariantMap &action) {
-        if(action.value("notificationId")=="import-task" && action.value("actionId")=="cancel" && action.value("ownerId")=="test") ++delivered;
+        if(action.value("notificationId")=="import-task" && action.value("actionId")=="cancel" && action.value("ownerId")=="test") {
+            ++delivered;
+            check(context->completeNotificationAction(action.value("actionSequence").toULongLong(),true).value("ok").toBool(),"QML action completion acknowledged");
+        }
     });
     check(QMetaObject::invokeMethod(primaryAction, "clicked"), "notification action click handled");
-    check(!primaryAction->isEnabled(), "pending action button disables until plugin takes the event");
+    check(!primaryAction->isEnabled(), "pending action button disables until plugin completes the action");
     QElapsedTimer actionWait; actionWait.start();
     while(delivered==0 && actionWait.elapsed()<1600){QCoreApplication::processEvents();QThread::msleep(5);}
     check(delivered==1, "queued action delivered asynchronously to owning QML context");
     context->setNotificationActionsEnabled(false);
-    check(context->takeNotificationActions().value("actions").toList().isEmpty(), "action is delivered once");
+    check(context->notificationState().value("actions").toList().first().toMap().value("status")=="completed", "completed action remains queryable");
     QMetaObject::invokeMethod(store, "hideToast");
     drawerItem->setParentItem(nullptr);
     notifierItem->setParentItem(nullptr);
@@ -559,7 +589,7 @@ Item {
     window.grabWindow();
     check(navigationHost->width()==managerItem->width() && navigationHost->height()==managerItem->height(),"self-contained page receives the whole viewport without host footer or margins");
     check(!selfContained->property("language").toString().isEmpty(),"external page receives session language without reading a config file");
-    { QFile config(languagePath);check(config.open(QIODevice::WriteOnly|QIODevice::Truncate),"update language fixture");config.write("[General]\nLanguage=zh_CN\n"); }
+    app.setProperty("xoviNativeUiLanguage","zh_CN");
     XoviI18n::attach(&engine,"epub-preloader");
     page["baseUrl"]="qrc:/xovi/epub-preloader/Settings.qml";
     QFile epubPage(QString::fromLocal8Bit(argv[1])+"/epub-preloader/Settings.qml");
@@ -644,29 +674,16 @@ Item {
     // Reproduce the device: stale Chinese config, native runtime already English.
     { QFile config(languagePath);check(config.open(QIODevice::WriteOnly|QIODevice::Truncate),"write stale Chinese config");config.write("[General]\nLanguage=zh_CN\n"); }
     for(int i=0;i<10;++i) { QCoreApplication::processEvents(); QThread::msleep(2); }
-    // Mirror the firmware adapter's property binding and signal, not a config-file write.
-    QQmlComponent languageAdapter(&engine);
-    languageAdapter.setData(R"(import QtQuick
-import org.xovi.Manager 1.0
-Item {
-    id: root
-    property QtObject languageSettings: QtObject { property string languageCode: "en" }
-    QtObject {
-        property string nativeLanguage: root.languageSettings ? root.languageSettings.languageCode : ""
-        onNativeLanguageChanged: ManagerNavigation.setNativeLanguage(nativeLanguage)
-        Component.onCompleted: ManagerNavigation.setNativeLanguage(nativeLanguage)
-    }
-})",QUrl("qrc:/test/LanguageAdapter.qml"));
-    QScopedPointer<QObject> adapter(languageAdapter.create());
-    check(bool(adapter),"native language adapter creates successfully");
-    auto *languageModel=adapter->property("languageSettings").value<QObject *>();
+    QTranslator nativeEnglish;
+    check(nativeEnglish.load(QString::fromLocal8Bit(argv[1])+"/xochitl_rcc/rcc_3.27.1.0/i18n/translations/reMarkable_en.qm"),"load actual firmware English catalog");
+    ManagerNavigation::observeNativeTranslator(&nativeEnglish);
     ManagerBridge liveLanguageBridge;
     for(int i=0;i<10;++i) { QCoreApplication::processEvents(); QThread::msleep(2); }
-    check(liveLanguageBridge.uiLanguage()=="en", "initial native English overrides stale Chinese config without opening a language selector");
-    for(const auto &language:QStringList{"zh_CN","zh_TW","en"}) {
-        languageModel->setProperty("languageCode",language);
-        for(int i=0;i<10;++i) { QCoreApplication::processEvents(); QThread::msleep(2); }
-        check(liveLanguageBridge.uiLanguage()==language,"native model change reaches manager without persisting configuration");
-    }
+    check(liveLanguageBridge.uiLanguage()=="en","native English translator overrides stale Chinese config without creating a language page");
+    QTranslator pluginChinese;
+    check(pluginChinese.load(":/xovi/i18n/xovi-extension-manager-ui/xovi-extension-manager-ui_zh_CN.qm"),"load plugin translator for authority isolation");
+    ManagerNavigation::observeNativeTranslator(&pluginChinese);
+    for(int i=0;i<10;++i) QCoreApplication::processEvents();
+    check(liveLanguageBridge.uiLanguage()=="en","plugin catalog cannot change the native language authority");
     managerItem->setParentItem(nullptr);
 }

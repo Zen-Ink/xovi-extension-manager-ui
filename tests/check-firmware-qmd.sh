@@ -31,10 +31,7 @@ affected = ("qml/device/view/settings/Settings.qml",
             "qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml",
             "qt/qml/xofm/modules/settings/qml/quicksettings/AirplaneToggle.qml",
             "qt/qml/xofm/modules/screenshare/qml/ScreenShareToggle.qml",
-            "qt/qml/xofm/modules/orientationsensor/qml/LockOrientationToggle.qml",
-            "qml/device/view/settings/LanguageAndKeyboard.qml",
-            "qt/qml/xofm/modules/localization/qml/LocalizationShortcut.qml",
-            "qt/qml/xofm/libs/localization/qml/LanguageSelector.qml")
+            "qt/qml/xofm/modules/orientationsensor/qml/LockOrientationToggle.qml")
 
 for version, qmd_name, label_guard in cases:
     source = workspace / "xochitl_rcc" / ("rcc_" + version)
@@ -46,13 +43,6 @@ for version, qmd_name, label_guard in cases:
             generated = output / relative
             assert generated.is_file(), f"{version}: missing patched {relative}"
             subprocess.run([qmlformat, str(generated)], check=True, stdout=subprocess.DEVNULL)
-        language = (output / "qml/device/view/settings/LanguageAndKeyboard.qml").read_text()
-        assert "root.languageSettings.languageCode" in language
-        assert "onNativeLanguageChanged: ManagerNavigation.setNativeLanguage(nativeLanguage)" in language
-        for native in affected[-2:]:
-            adapter = (output / native).read_text()
-            assert "root.languageSettings.languageCode" in adapter
-            assert "onXoviNativeLanguageChanged: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)" in adapter
         settings = (output / affected[0]).read_text()
         assert 'ManagerNavigation.registerSettingsHost(xoviManagerLoader)' in settings
         assert 'xoviManagerLoader.openEntry(owner, page, source)' in settings
@@ -78,6 +68,10 @@ for version, qmd_name, label_guard in cases:
         for entry in ("my-files", "filters", "favorites", "tags", "integrations", "trash", "help", "settings"):
             assert 'nativeEntryEnabled("' + entry + '", "sidebar")' in sidebar
         bottom = (output / affected[3]).read_text()
+        padding = 'sidePadding' if version.startswith('3.27.') else 'horizontalPadding'
+        assert f'root.{padding} * 2' in bottom, f'{version}: wrong native bottom padding property'
+        assert re.search(r'property\s+int\s+' + padding + r'\s*:', bottom), f'{version}: referenced padding is not declared'
+
         assert 'nativeEntryEnabled(item.objectName, "bottom")' in bottom
         assert 'supportedViews.includes(root.view)' in bottom
         quick = (output / affected[4]).read_text()

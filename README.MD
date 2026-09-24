@@ -1,6 +1,6 @@
 # XOVI Extension Manager UI
 
-Adds an **Extensions** entry to the 3.27/3.28 settings sidebar. The manager page
+Adds an **Extensions** entry to the settings sidebar. The manager page
 and third-party settings are created on demand, rather than during xochitl
 startup. Native providers and pure QML packages share the same page host.
 
@@ -9,7 +9,7 @@ processing diagnostics and next-start injection switches. Failed custom page
 creation leaves a Back button and an error. Configuration saving does not claim
 that a plugin has applied its new values.
 
-Requires `xovi-extension-manager >=0.2.0`, `qt-resource-rebuilder >=0.4.0`, and
+Requires `xovi-extension-manager >=0.3.0`, `qt-resource-rebuilder >=0.4.0`, and
 `xovi-message-broker >=0.2.0`. It deliberately uses native broker requests, not
 blocking broadcasts back to QML. The settings-entry patch supports the different
 3.27 and 3.28 roots; unsupported layouts fail the patch and retain original QML.
@@ -54,3 +54,16 @@ pins the shared settings, navigation, notifications and QML controls API.
 The `xovi` submodule supplies the binding generator; `XOVI_REPO` can override it.
 
 See [error presentation and component ownership](docs/diagnostics-and-controls.md).
+
+## Notification events (breaking migration)
+
+Notifications use event subscriptions plus state queries; the old polling API
+has been removed. Button delivery and business completion are separate states.
+See [native and QML examples](https://github.com/Zen-Ink/xovi-extension-manager-sdk/blob/master/docs/notification-events.md).
+Update manager, manager-ui and native notification producers together.
+Socket services live in manager and do not require this UI; see the SDK's
+[Socket service guide](https://github.com/Zen-Ink/xovi-extension-manager-sdk/blob/master/docs/managed-sockets.md).
+
+`python3 tests/check-notification-events.py` runs the actual QML notification
+store with a signal-driven backend stub, without compiling the plugin. Native
+callback/lifetime tests remain in `tests/run-host-tests.sh`.

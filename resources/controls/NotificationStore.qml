@@ -15,16 +15,39 @@ QtObject {
     property int revision: -1
     property var seen: ({})
     property string error: ""
+    property bool subscribed: false
     property string actionError: ""
     property var bridge: ManagerBridge {}
-    property var poll: Timer { interval: 2000; running: true; repeat: true; onTriggered: root.refresh() }
+    property var pendingToasts: []
+    property var changes: Connections { target: root.bridge; function onNotificationsChanged() { root.refresh() } }
+    Component.onCompleted: {
+        subscribed = bridge.subscribeNotifications()
+        refresh()
+    }
     property var toastTimer: Timer { interval: 5000; onTriggered: root.hideToast() }
     function key(entry) { return entry.ownerId + "/" + entry.notificationId }
-    function hideToast() { richToastKey = ""; richToastSequence = -1; toastTimer.stop() }
+    function hideToast() {
+        richToastKey = ""; richToastSequence = -1; toastTimer.stop()
+        Qt.callLater(showNextToast)
+    }
+    function showNextToast() {
+        if (richToastKey) return
+        var queue = pendingToasts.slice()
+        while (queue.length) {
+            var candidate = queue.shift()
+            var entry = entries.find(function(e) { return key(e) === candidate && !e.read })
+            if (!entry) continue
+            pendingToasts = queue
+            richToastKey = candidate; richToastSequence = entry.sequence
+            lastToast = Date.now(); toastTimer.restart()
+            return
+        }
+        pendingToasts = []
+    }
     function refresh() {
         var result = bridge.request("notificationsList", revision >= 0 ? {sinceRevision: revision} : {})
         if (!result.ok) { error = result.error || ""; return }
-        error = ""
+        error = subscribed ? "" : "notification-subscription-unavailable"
         if (result.revision === revision) return
         revision = result.revision
         entries = result.entries || []
@@ -36,11 +59,19 @@ QtObject {
             nextSeen[key(entry)] = stamp
         })
         seen = nextSeen
-        if (!fresh.length || Date.now() - lastToast < 6000) return
-        var entry = fresh[0]
-        lastToast = Date.now()
-        richToastKey = key(entry); richToastSequence = entry.sequence
-        toastTimer.restart()
+        var queue = pendingToasts.slice()
+        // Store order is newest first; banners are FIFO. Updates to the same
+        // notification replace its queued view instead of creating duplicates.
+        fresh.reverse().forEach(function(entry) {
+            var id = key(entry)
+            if (id === richToastKey) {
+                richToastSequence = entry.sequence
+                lastToast = Date.now(); toastTimer.restart()
+            } else if (queue.indexOf(id) < 0) queue.push(id)
+        })
+        pendingToasts = queue.slice(-100)
+        if (richToastKey && !richToast.ownerId) hideToast()
+        else showNextToast()
     }
 
     function invoke(entry, actionId) {

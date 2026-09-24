@@ -37,7 +37,8 @@ Column {
     SettingsBody { text: "Body" }
     SettingsLabel { text: "Label" }
     SettingsTitle { text: "Title" }
-    ELabel { text: "Plain" }
+    ELabel { objectName: "plainLabel"; text: "Plain" }
+    ELabel { objectName: "addressLabel"; text: "http://example.local"; emphasized: true }
     EButton { objectName: "initialCheckedButton"; checked: true; iconName: "power" }
     EButton { objectName: "stateButton"; text: "Button"; iconName: "check" }
     SettingsPanel { width: 700; label: "Panel label"; description: "Panel description" }
@@ -52,6 +53,7 @@ Column {
     if(!object){std::fprintf(stderr,"%s\n",qPrintable(component.errorString()));return 1;}
     QCoreApplication::processEvents();
     const int count=checkFonts(qobject_cast<QQuickItem *>(object.data()));
+    if (object->findChild<QObject *>("addressLabel")->property("font").value<QFont>().weight()!=QFont::Bold) return 1;
     const auto sidebar=object->findChild<QObject *>("typographySidebar");
     const int expected=sidebar->property("description").isValid() ? 9 : 8;
     if(warnings || count<expected) { std::fprintf(stderr,"labels=%d warnings=%d\n",count,warnings); return 1; }
@@ -77,6 +79,9 @@ Column {
     auto *button=object->findChild<QObject *>("stateButton");
     auto *icon=button->findChild<QObject *>("buttonIcon");
     auto *label=button->findChild<QObject *>("buttonLabel");
+    if (label->property("font").value<QFont>().weight()!=QFont::Normal
+        || button->property("font").value<QFont>().weight()!=QFont::Normal
+        || object->findChild<QObject *>("plainLabel")->property("font").value<QFont>().weight()!=QFont::Normal) return 1;
     button->setProperty("enabled",false);
     if (!icon || !label || icon->property("color").value<QColor>()!=QColor("#808080")
             || label->property("color").value<QColor>()!=QColor("#808080")) return 1;

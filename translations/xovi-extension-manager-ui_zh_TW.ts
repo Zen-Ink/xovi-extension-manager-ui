@@ -258,7 +258,47 @@
             <source>Check the details before trying again.</source>
             <translation>請檢視詳情後再重試。</translation>
         </message>
-    </context>
+            <message>
+            <source>The API call does not match its lifecycle requirements.</source>
+            <translation>API 呼叫不符合生命週期要求。</translation>
+        </message>
+        <message>
+            <source>Check the application thread, process, registration and action state.</source>
+            <translation>檢查應用程式執行緒、程序、註冊及操作狀態。</translation>
+        </message>
+        <message>
+            <source>The socket address is already in use.</source>
+            <translation>Socket 位址已被佔用。</translation>
+        </message>
+        <message>
+            <source>Use another service ID or stop the existing service; do not remove its socket.</source>
+            <translation>使用其他服務 ID 或停止現有服務；不要刪除其 Socket。</translation>
+        </message>
+        <message>
+            <source>The socket path cannot be used safely.</source>
+            <translation>無法安全使用 Socket 路徑。</translation>
+        </message>
+        <message>
+            <source>Check directory ownership, permissions and conflicting files.</source>
+            <translation>檢查目錄擁有者、權限及衝突檔案。</translation>
+        </message>
+        <message>
+            <source>Socket communication failed.</source>
+            <translation>Socket 通訊失敗。</translation>
+        </message>
+        <message>
+            <source>Check the client and system resources, then reconnect and query current state.</source>
+            <translation>檢查用戶端及系統資源，然後重新連線並查詢目前狀態。</translation>
+        </message>
+        <message>
+            <source>The socket path is too long.</source>
+            <translation>Socket 路徑過長。</translation>
+        </message>
+        <message>
+            <source>Use shorter owner and service IDs.</source>
+            <translation>請縮短外掛及服務 ID。</translation>
+        </message>
+</context>
     <context>
         <name>LauncherEntries</name>
         <message>

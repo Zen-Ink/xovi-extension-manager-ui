@@ -15,13 +15,13 @@ AFFECT /qml/device/view/settings/Settings.qml
                 property string pageId: "inventory"
                 property string entryPoint: "settings"
                 property var directPage: null
-                function present() {
+                function present(replaceRoot) {
                     item.systemNavigator = settings.windowNavigator
-                    item.initialOwner = ownerId
+                    if (replaceRoot) item.initialOwner = ownerId
                     item.entryPoint = entryPoint
                     item.refresh()
-                    if (directPage) item.showPage(directPage)
-                    else item.openEntry(ownerId, pageId)
+                    if (directPage) item.showPage(directPage, replaceRoot)
+                    else item.openEntry(ownerId, pageId, replaceRoot)
                 }
                 function openEntry(owner, page, source) {
                     directPage = null
@@ -38,7 +38,7 @@ AFFECT /qml/device/view/settings/Settings.qml
                     if (item) present()
                     else active = true
                 }
-                onLoaded: present()
+                onLoaded: present(true)
             }
             Connections {
                 target: ManagerNavigation
@@ -105,8 +105,8 @@ AFFECT /qml/device/view/main/MainView.qml
                     item.initialOwner = ownerId
                     item.entryPoint = entryPoint
                     item.refresh()
-                    if (directPage) item.showPage(directPage)
-                    else item.openEntry(ownerId, pageId)
+                    if (directPage) item.showPage(directPage, true)
+                    else item.openEntry(ownerId, pageId, true)
                 }
             }
             Connections {
@@ -117,7 +117,6 @@ AFFECT /qml/device/view/main/MainView.qml
                     xoviPinnedManager.ownerId = page.id
                     xoviPinnedManager.entryPoint = "direct"
                     if (xoviPinnedManager.item) {
-                        xoviPinnedManager.item.initialOwner = page.id
                         xoviPinnedManager.item.entryPoint = "direct"
                         xoviPinnedManager.item.showPage(page)
                     } else xoviPinnedManager.active = true
@@ -129,7 +128,6 @@ AFFECT /qml/device/view/main/MainView.qml
                     xoviPinnedManager.pageId = pageId
                     xoviPinnedManager.entryPoint = source
                     if (xoviPinnedManager.item) {
-                        xoviPinnedManager.item.initialOwner = owner
                         xoviPinnedManager.item.entryPoint = source
                         xoviPinnedManager.item.refresh()
                         xoviPinnedManager.item.openEntry(owner, pageId)
@@ -219,7 +217,7 @@ AFFECT /qt/qml/xofm/libs/homescreen/qml/CreateMenu.qml
                     "popupOverlay": Qt.binding(function() { return root.popupOverlay }),
                     "anchorTarget": root,
                     "currentView": Qt.binding(function() { return root.view }),
-                    "availableExtent": Qt.binding(function() { return root.parent ? Math.max(0, root.parent.width - root.horizontalPadding * 2) : 0 })
+                    "availableExtent": Qt.binding(function() { return root.parent ? Math.max(0, root.parent.width - root.sidePadding * 2) : 0 })
                 })
             }
         }
@@ -378,45 +376,5 @@ AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
     TRAVERSE GridLayout#root > Repeater > WidgetLoader
         LOCATE AFTER ALL
         INSERT { visible: !item || item.xoviShortcutEnabled !== false }
-    END TRAVERSE
-END AFFECT
-
-AFFECT /qml/device/view/settings/LanguageAndKeyboard.qml
-    IMPORT org.xovi.Manager 1.0
-    TRAVERSE DeviceKeyboardNavigationHandler#root
-        LOCATE AFTER ALL
-        INSERT {
-            QtObject {
-                property string nativeLanguage: root.languageSettings ? root.languageSettings.languageCode : ""
-                onNativeLanguageChanged: ManagerNavigation.setNativeLanguage(nativeLanguage)
-                Component.onCompleted: ManagerNavigation.setNativeLanguage(nativeLanguage)
-            }
-        }
-    END TRAVERSE
-END AFFECT
-
-AFFECT /qt/qml/xofm/modules/localization/qml/LocalizationShortcut.qml
-    IMPORT QtQuick 2.15
-    IMPORT org.xovi.Manager 1.0
-    TRAVERSE KYBD.Shortcut#root
-        LOCATE AFTER ALL
-        INSERT {
-            property string xoviNativeLanguage: root.languageSettings ? root.languageSettings.languageCode : ""
-            onXoviNativeLanguageChanged: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)
-            Component.onCompleted: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)
-        }
-    END TRAVERSE
-END AFFECT
-
-AFFECT /qt/qml/xofm/libs/localization/qml/LanguageSelector.qml
-    IMPORT QtQuick 2.15
-    IMPORT org.xovi.Manager 1.0
-    TRAVERSE ListView#root
-        LOCATE AFTER ALL
-        INSERT {
-            property string xoviNativeLanguage: root.languageSettings ? root.languageSettings.languageCode : ""
-            onXoviNativeLanguageChanged: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)
-            Component.onCompleted: ManagerNavigation.setNativeLanguage(xoviNativeLanguage)
-        }
     END TRAVERSE
 END AFFECT

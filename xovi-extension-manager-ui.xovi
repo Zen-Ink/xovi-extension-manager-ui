@@ -1,9 +1,12 @@
 version 0.1.0
 depends-on xovi-message-broker:0.2.0
 depends-on qt-resource-rebuilder:0.4.0
-depends-on xovi-extension-manager:0.2.0
+depends-on xovi-extension-manager:0.3.0
 import? xovi-message-broker$broadcastToNative
 import? qt-resource-rebuilder$qrr_get_api_v1
+override _ZN16QCoreApplication17installTranslatorEP11QTranslator
+import? _ZN16QCoreApplication17installTranslatorEP11QTranslator
+import? xovi-extension-manager$xem_notifications_get_api
 resource settingsEntry327:qmd/manager_3_27_x.qmd
 resource settingsEntry328:qmd/manager_3_28_x.qmd
 global-meta
@@ -11,7 +14,7 @@ global-meta
     name = "Extension Manager UI"
     description = "On-demand native and QML extension settings"
     requiresXovi = ">=0.3.0"
-    requiresExtensions = "xovi-extension-manager:>=0.2.0,qt-resource-rebuilder:>=0.4.0,xovi-message-broker:>=0.2.0"
+    requiresExtensions = "xovi-extension-manager:>=0.3.0,qt-resource-rebuilder:>=0.4.0,xovi-message-broker:>=0.2.0"
     xochitlVersions = "3.27.x.x,3.28.x.x"
     entry = "xovi-extension-manager-ui.so"
 end

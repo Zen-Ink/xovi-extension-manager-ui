@@ -44,7 +44,7 @@ Rectangle {
                     color: "white"; border.color: "black"; border.width: modelData.read ? 1 : 3
                     ColumnLayout {
                         anchors.fill: parent; anchors.margins: 16; spacing: 8
-                        ELabel { text: modelData.title; font.bold: !modelData.read; Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
+                        ELabel { text: modelData.title; emphasized: !modelData.read; Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
                         ELabel { text: modelData.message || ""; Layout.fillWidth: true; Layout.fillHeight: true; maximumLineCount: 2; elide: Text.ElideRight }
                         NotificationProgress { visible: !!modelData.progress; progress: modelData.progress || null; Layout.fillWidth: true }
                     }

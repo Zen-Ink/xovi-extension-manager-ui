@@ -1,3 +1,4 @@
+#include <QThread>
 #include "bridge.h"
 #include "../sdk/xovi-i18n.h"
 #include "../xovi.h"
@@ -99,6 +100,19 @@ extern "C" char *xem_open_settings(const char *request) {
     if (!doc.isObject() || !args.value("ownerId").isString() || (args.contains("pageId") && !args.value("pageId").isString()))
         return navigationReply(uiFailure("invalid-request"));
     return navigationReply(requestSettings(args.value("ownerId").toString(),args.value("pageId").toString("main")));
+}
+void ManagerNavigation::observeNativeTranslator(QTranslator *translator) {
+    if (!translator) return;
+    // Read the already-loaded Qt object, not a configuration or environment variable.
+    // Plugin catalogs must never become the native language authority.
+    const auto file=translator->filePath().section('/',-1);
+    if (!file.startsWith("reMarkable_") || !file.endsWith(".qm")) return;
+    const auto language=translator->language();
+    if (language.isEmpty()) return;
+    auto *app=QCoreApplication::instance();
+    if (!app) return;
+    if (QThread::currentThread()==app->thread()) shared()->setNativeLanguage(language);
+    else QMetaObject::invokeMethod(app,[language]() { shared()->setNativeLanguage(language); },Qt::QueuedConnection);
 }
 void ManagerNavigation::setNativeLanguage(const QString &language) {
     if(language.trimmed().isEmpty()) return;
@@ -213,6 +227,23 @@ QVariantMap ManagerNavigation::unregisterPage(QObject *owner,const QString &id,c
     if(result.value("ok").toBool()) {registrations_.remove(key);notifyLaunchersChanged();}
     return result;
 }
+static const XemNotificationsApi *notificationApi() {
+    auto getter=reinterpret_cast<XemNotificationsApiGetter>(xovi_extension_manager$xem_notifications_get_api);
+    const auto *api=getter ? getter() : nullptr;
+    return api && api->abiVersion==XEM_NOTIFICATIONS_ABI && api->structSize>=sizeof(*api) && api->subscribe && api->unsubscribe ? api : nullptr;
+}
+bool ManagerBridge::subscribeNotifications() {
+    if(notificationSubscription_) return true;
+    notificationApi_=notificationApi();
+    if(!notificationApi_) return false;
+    notificationSubscription_=notificationApi_->subscribe("",+[](const char *,void *context) {
+        emit static_cast<ManagerBridge *>(context)->notificationsChanged();
+    },this);
+    return notificationSubscription_!=0;
+}
+ManagerBridge::~ManagerBridge() {
+    if(notificationSubscription_) notificationApi_->unsubscribe(notificationSubscription_);
+}
 ManagerBridge::ManagerBridge(QObject *parent):QObject(parent) {
     XoviI18n::prepareCatalog("xovi-extension-manager-ui");
     auto *observer=new XoviI18n::LanguageObserver(this,[this]() { emit languageChanged(); });
@@ -244,25 +275,37 @@ SettingsContext::SettingsContext(QString id,QObject *parent):QObject(parent),id_
     });
     QCoreApplication::instance()->installEventFilter(languageObserver);
     reload();
-    actionTimer_.setInterval(1000);
-    connect(&actionTimer_, &QTimer::timeout, this, [this] {
-        const auto result = takeNotificationActions();
-        for (const auto &value : result.value("actions").toList()) {
-            // A provider may close its page while handling an action.
-            QPointer<SettingsContext> alive(this);
-            emit notificationAction(value.toMap());
-            if (!alive) return;
-        }
-    });
+}
+SettingsContext::~SettingsContext() {
+    if(actionSubscription_) notificationApi_->unsubscribe(actionSubscription_);
 }
 void SettingsContext::setNotificationActionsEnabled(bool enabled) {
-    if (enabled == actionTimer_.isActive()) return;
-    if (enabled) actionTimer_.start(); else actionTimer_.stop();
+    if(enabled==notificationActionsEnabled()) return;
+    if(enabled) {
+        notificationApi_=notificationApi();
+        if(notificationApi_) actionSubscription_=notificationApi_->subscribe(id_.toUtf8().constData(),
+            +[](const char *json,void *context) {
+                const auto event=QJsonDocument::fromJson(json).object();
+                if(event.value("type")=="action")
+                    emit static_cast<SettingsContext *>(context)->notificationAction(event.value("action").toObject().toVariantMap());
+                else if(event.value("type")=="changed")
+                    emit static_cast<SettingsContext *>(context)->notificationStateChanged();
+            },this);
+        if(!actionSubscription_) { error_="notification-subscription-unavailable";emit changed(); }
+        else if(error_=="notification-subscription-unavailable") { error_.clear();emit changed(); }
+    } else {
+        notificationApi_->unsubscribe(actionSubscription_);actionSubscription_=0;
+    }
     emit notificationActionsEnabledChanged();
 }
-QVariantMap SettingsContext::takeNotificationActions() {
+QVariantMap SettingsContext::notificationState() {
     ManagerBridge bridge;
-    return bridge.request("notificationsPollActions", {{"ownerId", id_}});
+    return bridge.request("notificationsList", {{"ownerId", id_}});
+}
+QVariantMap SettingsContext::completeNotificationAction(qulonglong sequence,bool success,const QVariantMap &result) {
+    ManagerBridge bridge;
+    return bridge.request("notificationsAcknowledge",{{"ownerId",id_},{"actionSequence",sequence},
+        {"status",success ? "completed" : "failed"},{"result",result}});
 }
 QVariantMap SettingsContext::openSystemSettings(const QString &target) {
     if(target!="wifi" && target!="language") return uiFailure("unsupported-target");
@@ -442,7 +485,12 @@ void SettingsHost::finish() {
     auto *pageContext=new QQmlContext(creationContext ? creationContext : hostContext,context_);
     if (!pageContext->isValid()) { delete pageContext; report("unloaded"); return; }
     const bool usesContext=page_.value("usesSettingsContext",true).toBool();
-    const QVariantMap initial=usesContext ? QVariantMap{{"settingsContext",QVariant::fromValue(context_)}} : QVariantMap{};
+    // Layouts and Component.onCompleted must see the actual viewport. Creating
+    // a parentless 0x0 page and resizing it afterwards first runs all wrapped
+    // text/layout bindings against an invalid viewport.
+    QVariantMap initial{{"parent",QVariant::fromValue<QQuickItem *>(this)},
+                        {"width",width()},{"height",height()}};
+    if(usesContext) initial.insert("settingsContext",QVariant::fromValue(context_));
     auto *object=component_->createWithInitialProperties(initial,pageContext);
     item_=qobject_cast<QQuickItem *>(object);
     if(!item_ || (usesContext && object->metaObject()->indexOfProperty("settingsContext")<0)) {item_=nullptr;delete object;report("failed",component_->errorString().isEmpty() ? "Settings root must be an Item; settingsContext is required only when requested" : component_->errorString());return;}

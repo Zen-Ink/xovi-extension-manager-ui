@@ -15,7 +15,7 @@ Item {
     readonly property real entryExtent: location === "bottom" ? 80 : metrics.item ? metrics.item.implicitHeight : 0
     readonly property int capacity: slots >= 0 ? slots : measuredCapacity()
     function measuredCapacity() {
-        if (!layoutHost || availableExtent < 0 || entryExtent <= 0) return count
+        if (!layoutHost || !isFinite(availableExtent) || availableExtent < 0 || entryExtent <= 0) return count
         var horizontal = location === "bottom"
         var spacing = horizontal ? layoutHost.spacing || 0 : layoutHost.rowSpacing || layoutHost.spacing || 0
         var used = 0
@@ -50,7 +50,7 @@ Item {
     signal activated()
     implicitWidth: location === "bottom" ? Math.max(0, displayedEntries.length * 104 - 24) : 80
     implicitHeight: count === 0 ? 0 : grid.implicitHeight
-    onPageCountChanged: pageIndex = Math.min(pageIndex, pageCount - 1)
+    onPageCountChanged: pageIndex = Math.max(0, Math.min(pageIndex, pageCount - 1))
     ManagerBridge { id: bridge }
     function refresh() {
         var result = bridge.request("launcherList", {})

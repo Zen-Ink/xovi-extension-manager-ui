@@ -258,7 +258,47 @@
             <source>Check the details before trying again.</source>
             <translation>Check the details before trying again.</translation>
         </message>
-    </context>
+            <message>
+            <source>The API call does not match its lifecycle requirements.</source>
+            <translation>The API call does not match its lifecycle requirements.</translation>
+        </message>
+        <message>
+            <source>Check the application thread, process, registration and action state.</source>
+            <translation>Check the application thread, process, registration and action state.</translation>
+        </message>
+        <message>
+            <source>The socket address is already in use.</source>
+            <translation>The socket address is already in use.</translation>
+        </message>
+        <message>
+            <source>Use another service ID or stop the existing service; do not remove its socket.</source>
+            <translation>Use another service ID or stop the existing service; do not remove its socket.</translation>
+        </message>
+        <message>
+            <source>The socket path cannot be used safely.</source>
+            <translation>The socket path cannot be used safely.</translation>
+        </message>
+        <message>
+            <source>Check directory ownership, permissions and conflicting files.</source>
+            <translation>Check directory ownership, permissions and conflicting files.</translation>
+        </message>
+        <message>
+            <source>Socket communication failed.</source>
+            <translation>Socket communication failed.</translation>
+        </message>
+        <message>
+            <source>Check the client and system resources, then reconnect and query current state.</source>
+            <translation>Check the client and system resources, then reconnect and query current state.</translation>
+        </message>
+        <message>
+            <source>The socket path is too long.</source>
+            <translation>The socket path is too long.</translation>
+        </message>
+        <message>
+            <source>Use shorter owner and service IDs.</source>
+            <translation>Use shorter owner and service IDs.</translation>
+        </message>
+</context>
     <context>
         <name>LauncherEntries</name>
         <message>

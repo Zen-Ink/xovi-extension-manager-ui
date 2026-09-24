@@ -160,3 +160,18 @@ precedence; native provider metadata takes priority for matching identities.
 - With manager-ui: open, close and reopen the page; check the plugin's language.
 - For registered pages: PIN, restart, then disable the owning plugin and check its entry.
 - Test an invalid page URL: the host should show a loading error. An accepted open request only means it was queued.
+
+## Notification actions and external clients
+
+Pages can call `settingsContext.notify()` without the SDK. Set
+`notificationActionsEnabled` to subscribe, handle `notificationAction(action)`,
+and call `completeNotificationAction(action.actionSequence, success, result)`
+only after the asynchronous operation finishes. Use `notificationState()` after
+`notificationStateChanged()` or when reopening to reconcile in-flight work.
+There is no destructive action polling. See the
+[notification examples](https://github.com/Zen-Ink/xovi-extension-manager-sdk/blob/master/docs/notification-events.md).
+
+For services independent of page lifetime, native controllers can register
+[managed Unix Sockets](https://github.com/Zen-Ink/xovi-extension-manager-sdk/blob/master/docs/managed-sockets.md)
+through manager. External programs need only the service's JSON-lines protocol;
+they do not link the SDK or require manager-ui.

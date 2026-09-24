@@ -7,18 +7,29 @@
 #include <QVariantMap>
 #include <QTimer>
 #include <QSet>
+#include "../sdk/xovi-notifications.h"
+
+class QTranslator;
 
 class ManagerBridge : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString uiLanguage READ uiLanguage NOTIFY languageChanged)
+    Q_PROPERTY(bool uiLanguageReady READ uiLanguageReady NOTIFY languageChanged)
 public:
     explicit ManagerBridge(QObject *parent=nullptr);
+    ~ManagerBridge() override;
+    Q_INVOKABLE bool subscribeNotifications();
     QString uiLanguage() const;
+    bool uiLanguageReady() const { return !uiLanguage().isEmpty(); }
     Q_INVOKABLE QString entryTitle(const QVariantMap &entry);
     Q_INVOKABLE QString translate(const QString &context,const QString &source);
     Q_INVOKABLE QVariantMap request(const QString &command, const QVariantMap &args = {});
 signals:
     void languageChanged();
+    void notificationsChanged();
+private:
+    uint64_t notificationSubscription_=0;
+    const XemNotificationsApi *notificationApi_=nullptr;
 };
 class SettingsContext : public QObject {
     Q_OBJECT
@@ -34,6 +45,7 @@ class SettingsContext : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY changed)
 public:
     explicit SettingsContext(QString id, QObject *parent=nullptr);
+    ~SettingsContext() override;
     bool systemNavigationAvailable() const { return navigationHandler_.isCallable(); }
     void setNavigationHandler(const QJSValue &handler) { navigationHandler_=handler; emit navigationChanged(); }
     Q_INVOKABLE QVariantMap openSystemSettings(const QString &target);
@@ -48,9 +60,10 @@ public:
     QVariantMap values() const { return values_; }
     int revision() const { return revision_; }
     QString error() const { return error_; }
-    bool notificationActionsEnabled() const { return actionTimer_.isActive(); }
+    bool notificationActionsEnabled() const { return actionSubscription_!=0; }
     void setNotificationActionsEnabled(bool enabled);
-    Q_INVOKABLE QVariantMap takeNotificationActions();
+    Q_INVOKABLE QVariantMap notificationState();
+    Q_INVOKABLE QVariantMap completeNotificationAction(qulonglong sequence, bool success, const QVariantMap &result = {});
     Q_INVOKABLE QVariantMap notify(const QVariantMap &notification);
     Q_INVOKABLE QVariantMap dismissNotification(const QString &notificationId);
     Q_INVOKABLE bool save(const QVariantMap &changes);
@@ -65,11 +78,13 @@ signals:
     void pinRequested();
     void notificationActionsEnabledChanged();
     void notificationAction(const QVariantMap &action);
+    void notificationStateChanged();
     void navigationChanged();
     void changed();
     void closeRequested();
 private:
-    QTimer actionTimer_;
+    uint64_t actionSubscription_=0;
+    const XemNotificationsApi *notificationApi_=nullptr;
     QJSValue navigationHandler_;
     QString id_, error_, uiLanguage_, launchSource_="manager";
     bool hostHeader_=true;
@@ -134,7 +149,8 @@ public:
     using QObject::QObject;
     static ManagerNavigation *shared();
     Q_INVOKABLE void registerLauncher(QObject *owner);
-    Q_INVOKABLE void setNativeLanguage(const QString &language);
+    void setNativeLanguage(const QString &language);
+    static void observeNativeTranslator(QTranslator *translator);
     Q_INVOKABLE void registerSettingsHost(QQuickItem *host);
     Q_INVOKABLE bool settingsHostVisible() const;
     // Registration is session-scoped; owner destruction removes its entries.

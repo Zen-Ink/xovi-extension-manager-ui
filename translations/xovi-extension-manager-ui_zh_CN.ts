@@ -258,7 +258,47 @@
             <source>Check the details before trying again.</source>
             <translation>请查看详情后再重试。</translation>
         </message>
-    </context>
+            <message>
+            <source>The API call does not match its lifecycle requirements.</source>
+            <translation>API 调用不符合生命周期要求。</translation>
+        </message>
+        <message>
+            <source>Check the application thread, process, registration and action state.</source>
+            <translation>检查应用线程、进程、注册及操作状态。</translation>
+        </message>
+        <message>
+            <source>The socket address is already in use.</source>
+            <translation>Socket 地址已被占用。</translation>
+        </message>
+        <message>
+            <source>Use another service ID or stop the existing service; do not remove its socket.</source>
+            <translation>使用其他服务 ID 或停止现有服务；不要删除其 Socket。</translation>
+        </message>
+        <message>
+            <source>The socket path cannot be used safely.</source>
+            <translation>无法安全使用 Socket 路径。</translation>
+        </message>
+        <message>
+            <source>Check directory ownership, permissions and conflicting files.</source>
+            <translation>检查目录所有者、权限及冲突文件。</translation>
+        </message>
+        <message>
+            <source>Socket communication failed.</source>
+            <translation>Socket 通信失败。</translation>
+        </message>
+        <message>
+            <source>Check the client and system resources, then reconnect and query current state.</source>
+            <translation>检查客户端及系统资源，然后重新连接并查询当前状态。</translation>
+        </message>
+        <message>
+            <source>The socket path is too long.</source>
+            <translation>Socket 路径过长。</translation>
+        </message>
+        <message>
+            <source>Use shorter owner and service IDs.</source>
+            <translation>请缩短插件及服务 ID。</translation>
+        </message>
+</context>
     <context>
         <name>LauncherEntries</name>
         <message>
