@@ -9,6 +9,7 @@
 <file alias="icons/bell.svg">resources/icons/bell.svg</file>
 <file alias="Manager.qml">resources/qml/Manager.qml</file>
 <file alias="LauncherEntries.qml">resources/qml/LauncherEntries.qml</file>
+<file alias="BottomPin.qml">resources/qml/BottomPin.qml</file>
 <file alias="icons/back.svg">resources/icons/back.svg</file>
 <file alias="icons/check.svg">resources/icons/check.svg</file>
 <file alias="icons/close.svg">resources/icons/close.svg</file>

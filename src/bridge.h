@@ -149,8 +149,6 @@ public:
     using QObject::QObject;
     static ManagerNavigation *shared();
     Q_INVOKABLE void registerLauncher(QObject *owner);
-    void setNativeLanguage(const QString &language);
-    static void observeNativeTranslator(QTranslator *translator);
     Q_INVOKABLE void registerSettingsHost(QQuickItem *host);
     Q_INVOKABLE bool settingsHostVisible() const;
     // Registration is session-scoped; owner destruction removes its entries.

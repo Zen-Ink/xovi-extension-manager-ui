@@ -16,7 +16,7 @@ for target in "${targets[@]}"; do (
         source "$toolchains/rm2/environment-setup-cortexa7hf-neon-remarkable-linux-gnueabi"
     fi
     cd "$project"
-    python3 "$XOVI_REPO/util/xovigen.py" -o xovi.cpp -H xovi.h xovi-extension-manager-ui.xovi
+    python3 "$XOVI_REPO/util/xovigen.py" -o xovi.cpp -H xovi.h -m manifest.json --manifest-entry xovi-extension-manager-ui.so xovi-extension-manager-ui.xovi
     mkdir -p "build/$target"
     qmake -o "build/$target/Makefile" xovi-extension-manager-ui.pro CONFIG+=release
     make -C "build/$target" -j"${JOBS:-4}"

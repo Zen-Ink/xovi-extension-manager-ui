@@ -101,27 +101,6 @@ extern "C" char *xem_open_settings(const char *request) {
         return navigationReply(uiFailure("invalid-request"));
     return navigationReply(requestSettings(args.value("ownerId").toString(),args.value("pageId").toString("main")));
 }
-void ManagerNavigation::observeNativeTranslator(QTranslator *translator) {
-    if (!translator) return;
-    // Read the already-loaded Qt object, not a configuration or environment variable.
-    // Plugin catalogs must never become the native language authority.
-    const auto file=translator->filePath().section('/',-1);
-    if (!file.startsWith("reMarkable_") || !file.endsWith(".qm")) return;
-    const auto language=translator->language();
-    if (language.isEmpty()) return;
-    auto *app=QCoreApplication::instance();
-    if (!app) return;
-    if (QThread::currentThread()==app->thread()) shared()->setNativeLanguage(language);
-    else QMetaObject::invokeMethod(app,[language]() { shared()->setNativeLanguage(language); },Qt::QueuedConnection);
-}
-void ManagerNavigation::setNativeLanguage(const QString &language) {
-    if(language.trimmed().isEmpty()) return;
-    auto *app=QCoreApplication::instance();
-    if(app && app->property("xoviNativeUiLanguage").toString()!=language) {
-        qInfo().noquote() << "[extension-manager-ui] native language:" << language;
-        app->setProperty("xoviNativeUiLanguage",language);
-    }
-}
 ManagerNavigation *ManagerNavigation::shared() {
     static auto *navigation=new ManagerNavigation(QCoreApplication::instance());
     return navigation;
@@ -308,7 +287,7 @@ QVariantMap SettingsContext::completeNotificationAction(qulonglong sequence,bool
         {"status",success ? "completed" : "failed"},{"result",result}});
 }
 QVariantMap SettingsContext::openSystemSettings(const QString &target) {
-    if(target!="wifi" && target!="language") return uiFailure("unsupported-target");
+    if(target!="wifi" && target!="language" && target!="account") return uiFailure("unsupported-target");
     if(!systemNavigationAvailable()) return uiFailure("navigation-unavailable");
     auto result=navigationHandler_.call({QJSValue(target)});
     if(result.isError()) return uiFailure("navigation-failed",result.toString());

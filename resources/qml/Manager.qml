@@ -56,7 +56,7 @@ Rectangle {
     ManagerBridge { id: bridge }
     function translate(text) { bridge.uiLanguage; return bridge.translate("Manager", text) }
     function openSystemSettings(target) {
-        var routes = {wifi: "wifi/window/network-select", language: "settings/window/language"}
+        var routes = {wifi: "wifi/window/network-select", language: "settings/window/language", account: "userfrontend/window/account-settings"}
         if (!routes[target] || !systemNavigator || typeof systemNavigator.open !== "function") return false
         try {
             if (systemNavigator.open(routes[target]) === false) throw new Error(root.translate(QT_TR_NOOP("Navigation rejected")))
@@ -97,7 +97,9 @@ Rectangle {
                 diagnostic.recovery ? bridge.translate("Diagnostics", diagnostic.recovery) : ""].filter(function(s) { return s.length }).join("\n")
     }
     function operationError(result) {
-        return diagnosticText(result.diagnostic) || result.message || result.error || root.translate(QT_TR_NOOP("Unable to save"))
+        var summary = diagnosticText(result.diagnostic) || result.message || result.error || root.translate(QT_TR_NOOP("Unable to save"))
+        var blockers = result.blockers || (result.issues || []).filter(function(issue) { return issue.indexOf("package-conflict:") === 0 })
+        return summary + (blockers.length ? "\n" + blockers.join("\n") : "")
     }
     function primaryDiagnostic(pkg) {
         var items = pkg.diagnostics || []

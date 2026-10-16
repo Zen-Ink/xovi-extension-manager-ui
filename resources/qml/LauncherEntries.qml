@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Window
 import ark.controls as ArkControls
-import xofm.libs.homescreen as Homescreen
 import org.xovi.Manager 1.0
 
 Item {
@@ -34,6 +33,7 @@ Item {
     }
     property var popupOverlay: null
     property var anchorTarget: root
+    property string actionAnchorProperty: "anchorTarget"
     property string currentView: "myfiles"
     property bool showLabels: location !== "bottom" && width >= 320
     property var excludedPages: []
@@ -93,15 +93,20 @@ Item {
     }
     Component {
         id: bottomEntry
-        Homescreen.Action {
-            objectName: "nativeBottomPin"
+        Loader {
+            id: bottomLoader
             property var entry: parent ? parent.entry : ({})
-            popupOverlay: root.popupOverlay
-            anchorTarget: root.anchorTarget
-            currentView: root.currentView
-            supportedViews: [root.currentView]
-            iconSource: root.iconFor(entry)
-            onActionClicked: root.activate(entry)
+            Component.onCompleted: {
+                var properties = {
+                    launchers: root,
+                    entry: Qt.binding(function() { return bottomLoader.entry }),
+                    popupOverlay: Qt.binding(function() { return root.popupOverlay }),
+                    currentView: Qt.binding(function() { return root.currentView }),
+                    supportedViews: Qt.binding(function() { return [root.currentView] })
+                }
+                properties[root.actionAnchorProperty] = Qt.binding(function() { return root.anchorTarget })
+                setSource("BottomPin.qml", properties)
+            }
         }
     }
     Loader {

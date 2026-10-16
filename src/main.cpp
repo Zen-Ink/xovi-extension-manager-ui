@@ -24,15 +24,9 @@ extern "C" void _xovi_construct() {
         const char *patch=nullptr;size_t length=0;
         if(version.startsWith("3.27.")) { patch=r$settingsEntry327;length=sizeof(r$settingsEntry327)-1; }
         else if(version.startsWith("3.28.")) { patch=r$settingsEntry328;length=sizeof(r$settingsEntry328)-1; }
+        else if(version.startsWith("3.29.")) { patch=r$settingsEntry329;length=sizeof(r$settingsEntry329)-1; }
         if(!patch) { qWarning("[extension-manager-ui] unsupported IMG_VERSION");return; }
         char *result=api->registerPatch("xovi-extension-manager-ui","settings-entry",patch,length);
         if(result) {qInfo("[extension-manager-ui] %s",result);api->freeString(result);}
     }
-}
-
-extern "C" bool override$_ZN16QCoreApplication17installTranslatorEP11QTranslator(QTranslator *translator) {
-    auto original=reinterpret_cast<bool (*)(QTranslator *)>($_ZN16QCoreApplication17installTranslatorEP11QTranslator);
-    const bool installed=original(translator);
-    if (installed) ManagerNavigation::observeNativeTranslator(translator);
-    return installed;
 }
