@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RCC>
+  <qresource prefix="/xovi/i18n/xovi-extension-manager-ui">
+    <file>xovi-extension-manager-ui_ar.qm</file>
+    <file>xovi-extension-manager-ui_de.qm</file>
+    <file>xovi-extension-manager-ui_en.qm</file>
+    <file>xovi-extension-manager-ui_es.qm</file>
+    <file>xovi-extension-manager-ui_fr.qm</file>
+    <file>xovi-extension-manager-ui_hi.qm</file>
+    <file>xovi-extension-manager-ui_it.qm</file>
+    <file>xovi-extension-manager-ui_ja.qm</file>
+    <file>xovi-extension-manager-ui_ko.qm</file>
+    <file>xovi-extension-manager-ui_nl.qm</file>
+    <file>xovi-extension-manager-ui_pt.qm</file>
+    <file>xovi-extension-manager-ui_ru.qm</file>
+    <file>xovi-extension-manager-ui_th.qm</file>
+    <file>xovi-extension-manager-ui_tr.qm</file>
+    <file>xovi-extension-manager-ui_vi.qm</file>
+    <file>xovi-extension-manager-ui_zh_CN.qm</file>
+    <file>xovi-extension-manager-ui_zh_TW.qm</file>
+  </qresource>
+</RCC>

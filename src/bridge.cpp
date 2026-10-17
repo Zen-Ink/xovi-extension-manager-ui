@@ -1,6 +1,6 @@
 #include <QThread>
 #include "bridge.h"
-#include "../sdk/xovi-i18n.h"
+#include "ManagerI18n.h"
 #include "../xovi.h"
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -224,14 +224,14 @@ ManagerBridge::~ManagerBridge() {
     if(notificationSubscription_) notificationApi_->unsubscribe(notificationSubscription_);
 }
 ManagerBridge::ManagerBridge(QObject *parent):QObject(parent) {
-    XoviI18n::prepareCatalog("xovi-extension-manager-ui");
-    auto *observer=new XoviI18n::LanguageObserver(this,[this]() { emit languageChanged(); });
+    ManagerI18n::service();
+    auto *observer=new ManagerI18n::LanguageObserver(this,[this]() { emit languageChanged(); });
     QCoreApplication::instance()->installEventFilter(observer);
-    QTimer::singleShot(0,this,[this]() { XoviI18n::attach(qmlEngine(this), "xovi-extension-manager-ui"); });
+    QTimer::singleShot(0,this,[this]() { ManagerI18n::attach(qmlEngine(this)); });
 }
-QString ManagerBridge::uiLanguage() const { return XoviI18n::currentLanguage(); }
+QString ManagerBridge::uiLanguage() const { return ManagerI18n::currentLanguage(); }
 QString ManagerBridge::translate(const QString &context,const QString &source) {
-    return XoviI18n::service()->translate("xovi-extension-manager-ui",context,source);
+    return ManagerI18n::service()->translate(context,source);
 }
 QVariantMap ManagerBridge::request(const QString &command,const QVariantMap &args) {
     // This is the native in-process broker path; it does not use the pipe limit
@@ -247,9 +247,9 @@ QVariantMap ManagerBridge::request(const QString &command,const QVariantMap &arg
     return doc.object().toVariantMap();
 }
 SettingsContext::SettingsContext(QString id,QObject *parent):QObject(parent),id_(std::move(id)) {
-    uiLanguage_=XoviI18n::currentLanguage();
-    auto *languageObserver=new XoviI18n::LanguageObserver(this,[this]() {
-        const auto language=XoviI18n::currentLanguage();
+    uiLanguage_=ManagerI18n::currentLanguage();
+    auto *languageObserver=new ManagerI18n::LanguageObserver(this,[this]() {
+        const auto language=ManagerI18n::currentLanguage();
         if (language!=uiLanguage_) { uiLanguage_=language; emit languageChanged(); }
     });
     QCoreApplication::instance()->installEventFilter(languageObserver);
@@ -392,7 +392,7 @@ void SettingsHost::setPage(const QVariantMap &page) {
 }
 void SettingsHost::componentComplete() {
     QQuickItem::componentComplete();
-    auto *observer=new XoviI18n::LanguageObserver(this,[this]() { emit stateChanged(); });
+    auto *observer=new ManagerI18n::LanguageObserver(this,[this]() { emit stateChanged(); });
     QCoreApplication::instance()->installEventFilter(observer);
     load();
 }
@@ -404,7 +404,7 @@ void SettingsHost::load() {
     // runs. This is cancellation, not a broken plugin settings page.
     if (!hostContext || !hostContext->isValid()) { report("unloaded"); return; }
     auto *engine=hostContext->engine();
-    XoviI18n::attach(engine, "xovi-extension-manager-ui");
+    ManagerI18n::attach(engine);
     if(!engine) {report("failed","QML engine unavailable");return;}
     report("loading");
     const QUrl pageUrl(page_.value("kind")=="inline" ? page_.value("baseUrl").toString() : page_.value("source").toString());
@@ -523,10 +523,10 @@ QString ManagerBridge::entryTitle(const QVariantMap &entry) {
     const auto context=entry.value("titleContext",QStringLiteral("XoviPluginNames")).toString();
     auto catalog=entry.value("translationCatalog",entry.value("id")).toString();
     if(entry.value("native").toBool() || catalog=="xovi-extension-manager") catalog="xovi-extension-manager-ui";
-    // Catalogs remain plugin-owned. Resolve explicitly instead of depending on
-    // global translator install order or whether a page has been opened yet.
-    if(QFile::exists(":/xovi/i18n/"+catalog+"/"+catalog+"_en.qm")) {
-        const auto translated=XoviI18n::service()->translate(catalog,context,source);
+    // Never load or own another plugin's translator. Owners publish title
+    // translations or install their own context-scoped catalogs.
+    if(catalog=="xovi-extension-manager-ui") {
+        const auto translated=ManagerI18n::service()->translate(context,source);
         if(translated!=source) return translated;
     }
     const auto translated=translate(context,source);

@@ -16,4 +16,5 @@ QMAKE_LFLAGS += -Wl,-Bsymbolic
 
 XOVI_TRANSLATION_ID = xovi-extension-manager-ui
 XOVI_TRANSLATION_DIR = $$PWD/translations
-include($$clean_path($$PWD/sdk/i18n.pri))
+RESOURCES += translations/catalogs.qrc
+HEADERS += src/ManagerI18n.h

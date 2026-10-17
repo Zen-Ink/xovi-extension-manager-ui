@@ -1,13 +1,13 @@
 #include "bridge.h"
-#include "../sdk/xovi-i18n.h"
+#include "ManagerI18n.h"
 #include "../xovi.h"
 #include "../sdk/qrr-api.h"
 #include <QtQml>
 #include <QFile>
 extern "C" void _xovi_construct() {
-    qAddPreRoutine(+[]() { XoviI18n::prepareCatalog("xovi-extension-manager-ui"); });
+    qAddPreRoutine(+[]() { ManagerI18n::service(); });
     qmlRegisterSingletonType<ManagerNavigation>("org.xovi.Manager",1,0,"ManagerNavigation",[](QQmlEngine *engine,QJSEngine *) -> QObject * {
-        XoviI18n::attach(engine, "xovi-extension-manager-ui");
+        ManagerI18n::attach(engine);
         auto *navigation=ManagerNavigation::shared();
         QQmlEngine::setObjectOwnership(navigation,QQmlEngine::CppOwnership);
         return navigation;
