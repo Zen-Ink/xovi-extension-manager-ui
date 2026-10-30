@@ -313,8 +313,7 @@ END AFFECT
 
 AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleColumn.qml
     TRAVERSE ColumnLayout#root > Repeater > WidgetLoader
-        LOCATE AFTER ALL
-        INSERT { visible: !item || item.xoviShortcutEnabled !== false }
+        REPLACE visible WITH { visible: !!item?.shown && item.xoviShortcutEnabled !== false }
     END TRAVERSE
 END AFFECT
 AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/AirplaneToggle.qml
@@ -335,16 +334,6 @@ AFFECT /qt/qml/xofm/modules/screenshare/qml/ScreenShareToggle.qml
         }
     END TRAVERSE
 END AFFECT
-AFFECT /qt/qml/xofm/modules/orientation/sensor/qml/LockOrientationToggle.qml
-    IMPORT org.xovi.Manager 1.0
-    TRAVERSE QuickSettingsToggle
-        LOCATE AFTER ALL
-        INSERT {
-            property bool xoviShortcutEnabled: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("rotation", "quick") }
-        }
-    END TRAVERSE
-END AFFECT
-
 AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
     IMPORT QtQuick.Window 2.15
     IMPORT org.xovi.Manager 1.0
@@ -376,7 +365,6 @@ AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
 END AFFECT
 AFFECT /qt/qml/xofm/modules/settings/qml/quicksettings/ToggleGrid.qml
     TRAVERSE GridLayout#root > Repeater > WidgetLoader
-        LOCATE AFTER ALL
-        INSERT { visible: !item || item.xoviShortcutEnabled !== false }
+        REPLACE visible WITH { visible: !!item?.shown && item.xoviShortcutEnabled !== false }
     END TRAVERSE
 END AFFECT

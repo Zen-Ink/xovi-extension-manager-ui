@@ -1,0 +1,11 @@
+VERSION 3.29.x.x
+
+AFFECT /qt/qml/xofm/modules/orientation/sensor/qml/LockOrientationToggle.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE QuickSettingsToggle
+        LOCATE AFTER ALL
+        INSERT {
+            property bool xoviShortcutEnabled: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("rotation", "quick") }
+        }
+    END TRAVERSE
+END AFFECT

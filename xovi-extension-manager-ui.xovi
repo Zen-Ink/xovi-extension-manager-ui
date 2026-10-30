@@ -1,4 +1,4 @@
-version 0.1.4
+version 0.1.5
 depends-on xovi-language:0.1.1
 depends-on xovi-message-broker:0.2.0
 depends-on qt-resource-rebuilder:0.4.0
@@ -9,6 +9,7 @@ import? xovi-extension-manager$xem_notifications_get_api
 resource settingsEntry327:qmd/manager_3_27_x.qmd
 resource settingsEntry328:qmd/manager_3_28_x.qmd
 resource settingsEntry329:qmd/manager_3_29_x.qmd
+resource orientationSensor329:qmd/manager_3_29_orientation_sensor.qmd
 global-meta
     id = "xovi-extension-manager-ui"
     name = "Extension Manager UI"

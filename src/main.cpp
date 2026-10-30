@@ -28,5 +28,13 @@ extern "C" void _xovi_construct() {
         if(!patch) { qWarning("[extension-manager-ui] unsupported IMG_VERSION");return; }
         char *result=api->registerPatch("xovi-extension-manager-ui","settings-entry",patch,length);
         if(result) {qInfo("[extension-manager-ui] %s",result);api->freeString(result);}
+#if defined(__aarch64__)
+        // The orientation-sensor module is absent on RM2 ARM firmware.
+        // Keep its shortcut control in the sensor-equipped architecture's patch.
+        if(version.startsWith("3.29.")) {
+            result=api->registerPatch("xovi-extension-manager-ui","orientation-sensor",r$orientationSensor329,sizeof(r$orientationSensor329)-1);
+            if(result) {qInfo("[extension-manager-ui] %s",result);api->freeString(result);}
+        }
+#endif
     }
 }
