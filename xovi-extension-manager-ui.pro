@@ -7,7 +7,10 @@ isEmpty(XOVI_REPO): XOVI_REPO = $$clean_path($$PWD/xovi)
 SOURCES += src/main.cpp src/bridge.cpp src/official-update-capture.cpp xovi.cpp
 LIBS += -ldl
 HEADERS += src/bridge.h
-RESOURCES += manager_resources.qrc sdk/xovi_controls.qrc
+isEmpty(XOVI_SDK): XOVI_SDK = $$(XOVI_SDK)
+isEmpty(XOVI_SDK): XOVI_SDK = $$PWD/sdk
+!exists($$XOVI_SDK/xovi_controls.qrc): error("XOVI_SDK must contain the shared controls")
+RESOURCES += manager_resources.qrc $$XOVI_SDK/xovi_controls.qrc
 xoviextension.target = $$PWD/xovi.cpp
 xoviextension.commands = cd $$PWD && python3 $$XOVI_REPO/util/xovigen.py -o xovi.cpp -H xovi.h -m manifest.json --manifest-entry xovi-extension-manager-ui.so xovi-extension-manager-ui.xovi
 xoviextension.depends = $$PWD/xovi-extension-manager-ui.xovi $$PWD/qmd/manager_3_27_x.qmd $$PWD/qmd/manager_3_28_x.qmd $$PWD/qmd/manager_3_29_x.qmd $$PWD/qmd/manager_3_29_orientation_sensor.qmd $$XOVI_REPO/util/xovigen.py

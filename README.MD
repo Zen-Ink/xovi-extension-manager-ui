@@ -42,6 +42,15 @@ Libraries are written to `build/<arch>/`. The toolchain root contains `rmpp`
 and `rm2` SDK environment scripts. The rm-xovi-extensions workspace can also
 build and package this plugin through its top-level `build.sh`.
 
+Shared UI controls are maintained in the workspace's `rm-xovi-extensions/sdk`.
+Set `XOVI_SDK` to that checkout when building here to embed its canonical
+`xovi_controls.qrc`; the existing local SDK submodule is left untouched. Standalone
+builds default to the pinned SDK submodule. This controls-resource override does
+not switch the native ABI headers. Follow the shared SDK's semantic Ark roles
+rather than adding local font sizes. All plugins in the same process must embed
+the same controls revision; an existing binary retains its embedded version until
+rebuilt and the GUI restarted.
+
 Host and firmware tests under `tests/` are integration tests: run them from an
 rm-xovi-extensions workspace containing the manager, plugin translation catalogs
 and extracted firmware resources. Firmware resources are not distributed here.
