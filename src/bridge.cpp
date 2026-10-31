@@ -60,6 +60,7 @@ std::atomic<bool> navigationReady{false};
 // module owns them; a destroyed object must never become a cached policy value.
 QPointer<QObject> officialUpdateEnabled;
 QPointer<QObject> officialRetailDemo;
+std::atomic<bool> officialNativeReady{false};
 QJsonValue nativeBool(QObject *object, const char *name) {
     if (!object) return QJsonValue(QJsonValue::Null);
     const int index=object->metaObject()->indexOfProperty(name);
@@ -168,6 +169,11 @@ extern "C" char *xem_official_update_control(const char *request) {
         return navigationReply(uiFailure("invalid-request"));
     auto *app=QCoreApplication::instance();
     if (!app) return navigationReply(uiFailure("ui-not-ready"));
+    if (!officialNativeReady.load())
+        return strdup(QJsonDocument(QJsonObject{{"ok",false},{"error","official-update-object-unavailable"},
+            {"source","native-software-update"},{"enabled",QJsonValue::Null},{"forced",QJsonValue::Null},
+            {"retail",QJsonValue::Null},{"persistentEnabled",QJsonValue::Null},
+            {"unitFileState",QJsonValue::Null},{"readbackMatches",QJsonValue::Null}}).toJson(QJsonDocument::Compact).constData());
     QJsonObject result;
     auto execute=[&] { result=controlOfficialUpdates(args); };
     if (QThread::currentThread()==app->thread()) execute();
@@ -176,10 +182,19 @@ extern "C" char *xem_official_update_control(const char *request) {
     return strdup(QJsonDocument(result).toJson(QJsonDocument::Compact).constData());
 }
 bool ManagerNavigation::bindOfficialUpdates(QObject *enabled, QObject *retail) {
-    if (!enabled || !retail || enabled->thread()!=thread() || retail->thread()!=thread() ||
+    if (!enabled || enabled->thread()!=thread() || (retail && retail->thread()!=thread()) ||
         QThread::currentThread()!=thread() ||
         QByteArray(enabled->metaObject()->className())!="xofm::modules::softwareupdate::UpdateEnabled") return false;
     officialUpdateEnabled=enabled;
+    if (retail) officialRetailDemo=retail;
+    officialNativeReady.store(true);
+    connect(enabled,&QObject::destroyed,this,[enabled] {
+        if (!officialUpdateEnabled || officialUpdateEnabled==enabled) officialNativeReady.store(false);
+    });
+    return true;
+}
+bool ManagerNavigation::bindOfficialRetail(QObject *retail) {
+    if (!retail || retail->thread()!=thread() || QThread::currentThread()!=thread()) return false;
     officialRetailDemo=retail;
     return true;
 }

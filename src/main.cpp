@@ -5,6 +5,7 @@
 #include <QtQml>
 #include <QFile>
 extern "C" void _xovi_construct() {
+    initializeOfficialUpdateCapture();
     qAddPreRoutine(+[]() { ManagerI18n::service(); });
     qmlRegisterSingletonType<ManagerNavigation>("org.xovi.Manager",1,0,"ManagerNavigation",[](QQmlEngine *engine,QJSEngine *) -> QObject * {
         ManagerI18n::attach(engine);

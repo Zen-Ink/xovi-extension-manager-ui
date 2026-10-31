@@ -10,6 +10,7 @@
 #include "../sdk/xovi-notifications.h"
 
 class QTranslator;
+void initializeOfficialUpdateCapture();
 
 class ManagerBridge : public QObject {
     Q_OBJECT
@@ -149,6 +150,7 @@ public:
     using QObject::QObject;
     static ManagerNavigation *shared();
     Q_INVOKABLE bool bindOfficialUpdates(QObject *updateEnabled, QObject *retailDemo);
+    Q_INVOKABLE bool bindOfficialRetail(QObject *retailDemo);
     Q_INVOKABLE void registerLauncher(QObject *owner);
     Q_INVOKABLE void registerSettingsHost(QQuickItem *host);
     Q_INVOKABLE bool settingsHostVisible() const;

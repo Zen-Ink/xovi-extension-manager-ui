@@ -54,12 +54,22 @@ Use the existing serialized native broker client and allow 90 seconds for the
 native systemd calls. The C export is `char *xem_official_update_control(const char *)`;
 the caller frees its JSON response with `free` as for other broker exports.
 
-The official `EnableUpdates.qml` binds its injected `UpdateEnabled` object and
-`RetailDemo` singleton when instantiated. Open the native Software page once
-after xochitl starts to establish this binding. References are borrowed and
-cleared on QObject destruction; no cached preference substitutes for an absent
-object. All object reads/writes execute on the GUI thread. No firmware-private
-layout or function offset is used.
+On RM2 3.27.1.0 and 3.29.1.0, startup captures the shared `UpdateEnabled`
+instance created by the resident softwareupdate module. Exact ELF build IDs
+and constructor call instructions identify the two supported call sites. Only
+xochitl's QObject C2 GOT entry is intercepted; other callers are passed through.
+After the original QObject constructor returns, a guarded queued callback waits
+for derived initialization and verifies the public metaobject class name.
+The ordinary MainView startup binds the existing `RetailDemo` singleton.
+No Software page creation or visit is required, and closing that page does not
+release the module-owned object. No private object layout is read.
+
+References are borrowed and cleared on actual QObject destruction. Before the
+startup callback has bound the instance, requests return unavailable immediately
+with null native fields rather than waiting for the GUI event loop to start.
+Unsupported executable identities also remain unavailable. All live object
+reads/writes execute on the GUI thread; calls already on that thread run directly.
+Native updates-off/on behavior and forced/retail constraints are retained.
 
 Replies contain `ok`, nullable booleans `enabled`, `forced`, `retail`,
 `persistentEnabled`, nullable string `unitFileState`, and nullable boolean

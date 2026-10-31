@@ -1,14 +1,5 @@
 VERSION 3.29.x.x
 
-AFFECT /qt/qml/xofm/modules/softwareupdate/qml/EnableUpdates.qml
-    IMPORT org.xovi.Manager 1.0
-    TRAVERSE ArkControls.Panel
-        LOCATE AFTER ALL
-        INSERT {
-            Component.onCompleted: ManagerNavigation.bindOfficialUpdates(updateEnabled, RetailDemo)
-        }
-    END TRAVERSE
-END AFFECT
 AFFECT /qml/device/view/settings/Settings.qml
     IMPORT org.xovi.Manager 1.0
     TRAVERSE Item#root
@@ -93,6 +84,9 @@ AFFECT /qml/device/view/main/MainView.qml
     TRAVERSE Background#root > FocusScope#rootItem
         LOCATE AFTER ALL
         INSERT {
+            QtObject {
+                Component.onCompleted: ManagerNavigation.bindOfficialRetail(RetailDemo)
+            }
             Loader {
                 anchors.fill: parent
                 z: 2100
