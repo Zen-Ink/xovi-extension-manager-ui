@@ -82,13 +82,38 @@ changing the preference, matching the native UI. Errors include
 `official-update-persistence-unverified`. Read success only means the native
 enabled property was readable; inspect nullable fields independently.
 
-The native setter controls `update-engine.service`. Persistence is read via
-systemd `GetUnitFileState`; no configuration key is fabricated. Turning updates
-off also hides the official manual-check button. This API neither checks for an
-official target nor starts an update. The observed official DBus interface
-exposes combined `AttemptUpdate()`, observational `GetStatus()`, and
-`ResetStatus()`; it does not expose separate check-only/download/install calls.
-Preference control alone does not prove compatibility-first update ordering.
+The native setter controls `update-engine.service`. On an enabled-to-disabled
+transition it requests `StopUnit` then `DisableUnitFiles`; the reverse transition
+requests `EnableUnitFiles` then `StartUnit`. Both native setters return immediately
+when their current boolean already equals the request. The bridge also skips an
+unchanged property write. Repeating `set(false)` therefore does not re-stop an
+engine subsequently started by another caller. Persistence is read via systemd
+`GetUnitFileState`, independently of the native boolean; `AutoUpdate=false` in a
+configuration file is not a substitute for either readback.
+
+The API does not directly call `AttemptUpdate`, but `set(true)` can start an
+update indirectly: the examined 3.27 engine checks on initialization, then on its
+timer, and issues `swupdate-ipc hawkbitcfg -t` when it discovers a target. Its
+`getupdateinfo` command precedes that separate trigger. Suricatta's startup `-d`
+does not disable this engine timer. Treat enabling as releasing the official
+automatic update path, not as harmless preparation for target discovery.
+
+Turning updates off also hides the official manual-check button. A successful
+bridge reply proves preference and unit-file state only: it does not check
+`ActiveState`, wait for the systemd stop job to finish, cancel an in-flight
+SWUpdate, or prevent another caller from starting the engine. The observed
+`GetStatus()` handler is observational, but activating its service to reach the
+handler can start the engine's automatic work. Status clients must avoid
+implicit service activation. The native Qt asynchronous GetStatus path also
+uses the standard auto-start-capable interface API; its actual invocation must
+not be inferred from a service-start timestamp alone.
+
+The DBus surface has no separate check-only/download/install calls. Hawkbit DDI
+has separate controller and deployment-metadata GET operations, so this DBus
+limitation does not rule out independent official target discovery. The target
+CLI's extended `getupdateinfo` receiver semantics still need verification before
+running it as check-only. Preference control alone does not prove
+compatibility-first update ordering or reserve the discovered official target.
 
 ## Checkout dependencies
 
