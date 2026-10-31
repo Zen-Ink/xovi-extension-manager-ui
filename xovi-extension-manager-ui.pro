@@ -1,7 +1,7 @@
 TEMPLATE = lib
 TARGET = xovi-extension-manager-ui
 CONFIG += shared plugin no_plugin_name_prefix c++17
-QT += core gui qml quick
+QT += core gui qml quick dbus
 XOVI_REPO = $$(XOVI_REPO)
 isEmpty(XOVI_REPO): XOVI_REPO = $$clean_path($$PWD/xovi)
 SOURCES += src/main.cpp src/bridge.cpp xovi.cpp

@@ -148,6 +148,7 @@ class ManagerNavigation : public QObject {
 public:
     using QObject::QObject;
     static ManagerNavigation *shared();
+    Q_INVOKABLE bool bindOfficialUpdates(QObject *updateEnabled, QObject *retailDemo);
     Q_INVOKABLE void registerLauncher(QObject *owner);
     Q_INVOKABLE void registerSettingsHost(QQuickItem *host);
     Q_INVOKABLE bool settingsHostVisible() const;

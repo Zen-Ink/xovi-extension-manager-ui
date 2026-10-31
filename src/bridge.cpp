@@ -14,6 +14,10 @@
 #include <QFile>
 #include <QUuid>
 #include <QRegularExpression>
+#include <QMetaProperty>
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusReply>
 #include "../sdk/xovi-navigation.h"
 
 // UI-local errors exist even when the manager service is unavailable.
@@ -52,6 +56,60 @@ static QString signalRequest(const QString &signal,const QString &message) {
 }
 namespace {
 std::atomic<bool> navigationReady{false};
+// Borrow the objects injected into the official Software panel. Their native
+// module owns them; a destroyed object must never become a cached policy value.
+QPointer<QObject> officialUpdateEnabled;
+QPointer<QObject> officialRetailDemo;
+QJsonValue nativeBool(QObject *object, const char *name) {
+    if (!object) return QJsonValue(QJsonValue::Null);
+    const int index=object->metaObject()->indexOfProperty(name);
+    if (index<0) return QJsonValue(QJsonValue::Null);
+    const auto value=object->metaObject()->property(index).read(object);
+    return value.metaType().id()==QMetaType::Bool ? QJsonValue(value.toBool()) : QJsonValue(QJsonValue::Null);
+}
+QJsonObject officialUpdateState() {
+    QJsonObject state{{"enabled",nativeBool(officialUpdateEnabled,"enabled")},
+            {"forced",nativeBool(officialUpdateEnabled,"forced")},
+            {"retail",nativeBool(officialRetailDemo,"enabled")},
+            {"source","native-software-update"},{"readbackMatches",QJsonValue::Null},
+            {"unitFileState",QJsonValue::Null},{"persistentEnabled",QJsonValue::Null}};
+    // This is the same persistent state queried by native UpgradeManager at
+    // startup. A successful QObject write alone does not prove systemd accepted it.
+    auto message=QDBusMessage::createMethodCall("org.freedesktop.systemd1",
+        "/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","GetUnitFileState");
+    message << QStringLiteral("update-engine.service");
+    QDBusReply<QString> reply=QDBusConnection::systemBus().call(message,QDBus::Block,3000);
+    if (reply.isValid()) {
+        state["unitFileState"]=reply.value();
+        if (reply.value()=="enabled") state["persistentEnabled"]=true;
+        else if (reply.value()=="disabled") state["persistentEnabled"]=false;
+    }
+    return state;
+}
+QJsonObject controlOfficialUpdates(const QJsonObject &request) {
+    auto state=officialUpdateState();
+    auto fail=[&](const char *error) { state["ok"]=false; state["error"]=error; return state; };
+    if (!state["enabled"].isBool()) return fail("official-update-object-unavailable");
+    if (request["action"]=="read") { state["ok"]=true; return state; }
+    const bool wanted=request["enabled"].toBool();
+    if (state["enabled"].toBool()!=wanted) {
+        if (!wanted && state["forced"]==true) return fail("official-updates-forced");
+        if (!state["retail"].isBool()) return fail("official-retail-state-unavailable");
+        if (state["retail"]==true) return fail("official-retail-control-disabled");
+        const int index=officialUpdateEnabled->metaObject()->indexOfProperty("enabled");
+        const auto property=officialUpdateEnabled->metaObject()->property(index);
+        if (!property.isWritable() || !property.write(officialUpdateEnabled,wanted))
+            return fail("official-update-write-failed");
+        state=officialUpdateState();
+    }
+    const bool matches=state["enabled"].isBool() && state["enabled"].toBool()==wanted;
+    state["readbackMatches"]=matches;
+    const bool persisted=state["persistentEnabled"].isBool() && state["persistentEnabled"].toBool()==wanted;
+    state["ok"]=matches && persisted;
+    if (!matches) state["error"]="official-update-readback-mismatch";
+    else if (!persisted) state["error"]="official-update-persistence-unverified";
+    return state;
+}
 QVariantMap requestSettings(const QString &ownerId,const QString &pageId) {
     static const QRegularExpression idPattern(QStringLiteral("^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$"));
     if (!idPattern.match(ownerId).hasMatch() || !idPattern.match(pageId).hasMatch())
@@ -100,6 +158,30 @@ extern "C" char *xem_open_settings(const char *request) {
     if (!doc.isObject() || !args.value("ownerId").isString() || (args.contains("pageId") && !args.value("pageId").isString()))
         return navigationReply(uiFailure("invalid-request"));
     return navigationReply(requestSettings(args.value("ownerId").toString(),args.value("pageId").toString("main")));
+}
+extern "C" char *xem_official_update_control(const char *request) {
+    if (!request || strnlen(request,1025)>1024) return navigationReply(uiFailure("invalid-request"));
+    const auto document=QJsonDocument::fromJson(QByteArray(request));
+    const auto args=document.object();
+    if (!document.isObject() || (args["action"]!="read" && args["action"]!="set") ||
+        (args["action"]=="set" && !args["enabled"].isBool()))
+        return navigationReply(uiFailure("invalid-request"));
+    auto *app=QCoreApplication::instance();
+    if (!app) return navigationReply(uiFailure("ui-not-ready"));
+    QJsonObject result;
+    auto execute=[&] { result=controlOfficialUpdates(args); };
+    if (QThread::currentThread()==app->thread()) execute();
+    else if (!QMetaObject::invokeMethod(app,execute,Qt::BlockingQueuedConnection))
+        return navigationReply(uiFailure("ui-not-ready"));
+    return strdup(QJsonDocument(result).toJson(QJsonDocument::Compact).constData());
+}
+bool ManagerNavigation::bindOfficialUpdates(QObject *enabled, QObject *retail) {
+    if (!enabled || !retail || enabled->thread()!=thread() || retail->thread()!=thread() ||
+        QThread::currentThread()!=thread() ||
+        QByteArray(enabled->metaObject()->className())!="xofm::modules::softwareupdate::UpdateEnabled") return false;
+    officialUpdateEnabled=enabled;
+    officialRetailDemo=retail;
+    return true;
 }
 ManagerNavigation *ManagerNavigation::shared() {
     static auto *navigation=new ManagerNavigation(QCoreApplication::instance());

@@ -46,6 +46,40 @@ Host and firmware tests under `tests/` are integration tests: run them from an
 rm-xovi-extensions workspace containing the manager, plugin translation catalogs
 and extracted firmware resources. Firmware resources are not distributed here.
 
+## Official update preference (3.27 / 3.29)
+
+Broker signal `xovi-extension-manager-ui$officialUpdateControl` accepts
+`{"action":"read"}` or `{"action":"set","enabled":false}` (also `true`).
+Use the existing serialized native broker client and allow 90 seconds for the
+native systemd calls. The C export is `char *xem_official_update_control(const char *)`;
+the caller frees its JSON response with `free` as for other broker exports.
+
+The official `EnableUpdates.qml` binds its injected `UpdateEnabled` object and
+`RetailDemo` singleton when instantiated. Open the native Software page once
+after xochitl starts to establish this binding. References are borrowed and
+cleared on QObject destruction; no cached preference substitutes for an absent
+object. All object reads/writes execute on the GUI thread. No firmware-private
+layout or function offset is used.
+
+Replies contain `ok`, nullable booleans `enabled`, `forced`, `retail`,
+`persistentEnabled`, nullable string `unitFileState`, and nullable boolean
+`readbackMatches`. Missing state is `null`, never an inferred `false`.
+On set, `ok=true` requires the native readback and persistent systemd state to
+equal the request. `forced=true` prevents disabling; retail mode prevents
+changing the preference, matching the native UI. Errors include
+`official-update-object-unavailable`, `official-updates-forced`,
+`official-retail-control-disabled`, `official-update-readback-mismatch`, and
+`official-update-persistence-unverified`. Read success only means the native
+enabled property was readable; inspect nullable fields independently.
+
+The native setter controls `update-engine.service`. Persistence is read via
+systemd `GetUnitFileState`; no configuration key is fabricated. Turning updates
+off also hides the official manual-check button. This API neither checks for an
+official target nor starts an update. The observed official DBus interface
+exposes combined `AttemptUpdate()`, observational `GetStatus()`, and
+`ResetStatus()`; it does not expose separate check-only/download/install calls.
+Preference control alone does not prove compatibility-first update ordering.
+
 ## Checkout dependencies
 
 Clone with `git clone --recurse-submodules`, or run

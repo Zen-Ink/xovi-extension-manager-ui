@@ -1,4 +1,13 @@
 VERSION 3.27.x.x
+AFFECT /qt/qml/xofm/modules/softwareupdate/qml/EnableUpdates.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE ArkControls.Panel
+        LOCATE AFTER ALL
+        INSERT {
+            Component.onCompleted: ManagerNavigation.bindOfficialUpdates(updateEnabled, RetailDemo)
+        }
+    END TRAVERSE
+END AFFECT
 AFFECT /qml/device/view/settings/Settings.qml
     IMPORT org.xovi.Manager 1.0
     TRAVERSE DeviceKeyboardNavigationHandler#settings

@@ -1,4 +1,4 @@
-version 0.1.5
+version 0.1.6
 depends-on xovi-language:0.1.1
 depends-on xovi-message-broker:0.2.0
 depends-on qt-resource-rebuilder:0.4.0
@@ -28,4 +28,9 @@ export xem_open_settings
 with
     xovi-message-broker$version = 1
     xovi-message-broker$simpleSignal = "xovi-extension-manager-ui$openSettings"
+end
+export xem_official_update_control
+with
+    xovi-message-broker$version = 1
+    xovi-message-broker$simpleSignal = "xovi-extension-manager-ui$officialUpdateControl"
 end
