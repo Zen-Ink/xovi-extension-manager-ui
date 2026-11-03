@@ -1,6 +1,9 @@
 #pragma once
 #include <QCoreApplication>
+#include <QDateTime>
+#include <QDebug>
 #include <QDynamicPropertyChangeEvent>
+#include <QElapsedTimer>
 #include <QQmlEngine>
 #include <QPointer>
 #include <QTimer>
@@ -41,8 +44,23 @@ public:
         translator_ = new QTranslator(this);
         if (translator_->load(":/xovi/i18n/xovi-extension-manager-ui/xovi-extension-manager-ui_" + code + ".qm"))
             QCoreApplication::installTranslator(translator_);
-        for (auto engine : engines_)
-            if (engine) QTimer::singleShot(0, engine, [engine] { if (engine) engine->retranslate(); });
+        qInfo().noquote() << "[manager-i18n] retranslate scheduled engines=" << engines_.size()
+                          << "epoch-ms=" << QDateTime::currentMSecsSinceEpoch();
+        int engineIndex = 0;
+        for (auto engine : engines_) {
+            const auto index = engineIndex++;
+            if (engine) QTimer::singleShot(0, engine, [engine, index] {
+                if (!engine) return;
+                QElapsedTimer elapsed;
+                elapsed.start();
+                qInfo().noquote() << "[manager-i18n] retranslate enter engine=" << index
+                                  << "epoch-ms=" << QDateTime::currentMSecsSinceEpoch();
+                engine->retranslate();
+                qInfo().noquote() << "[manager-i18n] retranslate exit engine=" << index
+                                  << "elapsed-ms=" << elapsed.elapsed()
+                                  << "epoch-ms=" << QDateTime::currentMSecsSinceEpoch();
+            });
+        }
     }
     void attach(QQmlEngine *engine) {
         if (engine && !engines_.contains(engine)) engines_.append(engine);
