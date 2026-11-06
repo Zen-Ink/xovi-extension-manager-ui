@@ -1,5 +1,16 @@
 VERSION 3.30.0.109
 
+AFFECT /qt/qml/xofm/modules/softwareupdate/qml/SoftwareSettingsWindow.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE BaseView#root
+        LOCATE AFTER ALL
+        INSERT {
+            Component.onCompleted: ManagerNavigation.bindOfficialUpdates(root.updateEnabled, null)
+            onUpdateEnabledChanged: ManagerNavigation.bindOfficialUpdates(root.updateEnabled, null)
+        }
+    END TRAVERSE
+END AFFECT
+
 AFFECT /qml/device/view/settings/Settings.qml
     IMPORT org.xovi.Manager 1.0
     TRAVERSE Item#root
