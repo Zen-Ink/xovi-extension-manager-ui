@@ -198,10 +198,7 @@ AFFECT /qml/device/view/navigator/Sidebar.qml
         }
     END TRAVERSE
     TRAVERSE FocusScope#root > ColumnLayout#filterColumn > ArkControls.SidebarItem#integrations
-        LOCATE AFTER ALL
-        INSERT {
-            visible: { ManagerNavigation.launcherRevision; return ManagerNavigation.nativeEntryEnabled("integrations", "sidebar") }
-        }
+        REPLACE visible WITH { visible: !Experimental.showStorage2Integrations.enabled && (ManagerNavigation.launcherRevision, ManagerNavigation.nativeEntryEnabled("integrations", "sidebar")) }
     END TRAVERSE
 END AFFECT
 AFFECT /qt/qml/xofm/libs/homescreen/qml/CreateMenu.qml
