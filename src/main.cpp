@@ -26,6 +26,9 @@ extern "C" void _xovi_construct() {
         if(version.startsWith("3.27.")) { patch=r$settingsEntry327;length=sizeof(r$settingsEntry327)-1; }
         else if(version.startsWith("3.28.")) { patch=r$settingsEntry328;length=sizeof(r$settingsEntry328)-1; }
         else if(version.startsWith("3.29.")) { patch=r$settingsEntry329;length=sizeof(r$settingsEntry329)-1; }
+#if defined(__arm__)
+        else if(version == "3.30.0.109") { patch=r$settingsEntry330Rm2;length=sizeof(r$settingsEntry330Rm2)-1; }
+#endif
         if(!patch) { qWarning("[extension-manager-ui] unsupported IMG_VERSION");return; }
         char *result=api->registerPatch("xovi-extension-manager-ui","settings-entry",patch,length);
         if(result) {qInfo("[extension-manager-ui] %s",result);api->freeString(result);}
