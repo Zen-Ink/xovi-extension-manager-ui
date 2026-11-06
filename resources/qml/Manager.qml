@@ -64,6 +64,7 @@ Rectangle {
         } catch (error) { message = String(error); return false }
     }
     function refresh() {
+        var started = Date.now()
         var inventory = bridge.request("list", {})
         var nextPackages = inventory.packages || inventory.extensions || []
         if (selectedPackage.id) selectedPackage = nextPackages.filter(function(p) { return p.id === selectedPackage.id })[0] || selectedPackage
@@ -83,6 +84,7 @@ Rectangle {
         launchers = (pins.entries || []).concat(pins.nativeEntries || [])
         if (!inventory.ok) message = root.operationError(inventory)
         else if (!pins.ok) message = root.operationError(pins)
+        console.info("[manager-ui] refresh total_ms", Date.now() - started)
     }
     function pageTitle(page) { bridge.uiLanguage; return bridge.entryTitle(page) }
     function packageTitle(pkg) {

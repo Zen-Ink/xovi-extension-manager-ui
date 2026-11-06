@@ -1,4 +1,6 @@
 #include <QThread>
+#include <QElapsedTimer>
+#include <QDebug>
 #include "bridge.h"
 #include "ManagerI18n.h"
 #include "xovi-generated.h"
@@ -338,10 +340,15 @@ QVariantMap ManagerBridge::request(const QString &command,const QVariantMap &arg
     const QString payload = plainId ? args.value("id").toString()
         : QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(args)).toJson(QJsonDocument::Compact));
     if (plainId && payload.isEmpty()) return uiFailure("missing-id");
+    const bool measure = command=="list" || command=="settingsList" || command=="injectionsGet" || command=="launcherList";
+    QElapsedTimer elapsed;
+    if (measure) elapsed.start();
     auto text=signalRequest("xovi-extension-manager$"+command, payload);
+    const qint64 brokerMs = measure ? elapsed.elapsed() : 0;
     auto doc=QJsonDocument::fromJson(text.toUtf8());
-    if(!doc.isObject()) return uiFailure("manager-unavailable");
-    return doc.object().toVariantMap();
+    auto result = doc.isObject() ? doc.object().toVariantMap() : uiFailure("manager-unavailable");
+    if (measure) qInfo().noquote() << "[manager-ui] request" << command << "broker_ms" << brokerMs << "total_ms" << elapsed.elapsed();
+    return result;
 }
 SettingsContext::SettingsContext(QString id,QObject *parent):QObject(parent),id_(std::move(id)) {
     uiLanguage_=ManagerI18n::currentLanguage();
