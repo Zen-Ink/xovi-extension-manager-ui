@@ -30,14 +30,20 @@ __attribute__((noinline)) void *captureConstructor(QObject *object, QObject *par
     const auto caller=reinterpret_cast<uintptr_t>(__builtin_return_address(0));
     void *result=originalConstructor(object,parent);
     if (caller==nativeCaller) {
+        qInfo("[extension-manager-ui] resident UpdateEnabled constructor observed");
         // QObject is initialized now, but its derived construction is not.
         // Inspect the public metaobject only after module setup has yielded.
         QPointer<QObject> guard(object);
-        if (auto *app=QCoreApplication::instance())
-            QMetaObject::invokeMethod(app,[guard] {
+        if (auto *app=QCoreApplication::instance()) {
+            if (!QMetaObject::invokeMethod(app,[guard] {
                 if (guard && ManagerNavigation::shared()->bindOfficialUpdates(guard,nullptr))
                     qInfo("[extension-manager-ui] bound resident native UpdateEnabled");
-            },Qt::QueuedConnection);
+                else
+                    qWarning("[extension-manager-ui] resident UpdateEnabled binding rejected");
+            },Qt::QueuedConnection))
+                qWarning("[extension-manager-ui] resident UpdateEnabled binding could not be queued");
+        } else
+            qWarning("[extension-manager-ui] resident UpdateEnabled application unavailable");
     }
     return result; // ARM constructor ABI returns this.
 }
