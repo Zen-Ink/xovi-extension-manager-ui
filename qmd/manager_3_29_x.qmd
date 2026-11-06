@@ -16,11 +16,11 @@ AFFECT /qml/device/view/settings/Settings.qml
                 property string pageId: "inventory"
                 property string entryPoint: "settings"
                 property var directPage: null
-                function present(replaceRoot) {
+                function present(replaceRoot, newlyLoaded) {
                     item.systemNavigator = root.windowNavigator
                     if (replaceRoot) item.initialOwner = ownerId
                     item.entryPoint = entryPoint
-                    item.refresh()
+                    if (!newlyLoaded) item.refresh()
                     if (directPage) item.showPage(directPage, replaceRoot)
                     else item.openEntry(ownerId, pageId, replaceRoot)
                 }
@@ -39,7 +39,7 @@ AFFECT /qml/device/view/settings/Settings.qml
                     if (item) present()
                     else active = true
                 }
-                onLoaded: present(true)
+                onLoaded: present(true, true)
             }
             Connections {
                 target: ManagerNavigation
@@ -108,7 +108,6 @@ AFFECT /qml/device/view/main/MainView.qml
                     item.systemNavigator = root.windowNavigator
                     item.initialOwner = ownerId
                     item.entryPoint = entryPoint
-                    item.refresh()
                     if (directPage) item.showPage(directPage, true)
                     else item.openEntry(ownerId, pageId, true)
                 }
