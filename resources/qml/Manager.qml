@@ -292,7 +292,7 @@ Rectangle {
             objectName: "managerPageHeader"
             visible: !root.pageOwnsChrome
             Layout.fillWidth: true
-            ELabel { text: (root.selectedPage.id ? root.pageTitle(root.selectedPage) : root.translate(QT_TR_NOOP("Extensions"))); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
+            ArkControls.Title { type: ArkControls.Title.Large; text: (root.selectedPage.id ? root.pageTitle(root.selectedPage) : root.translate(QT_TR_NOOP("Extensions"))); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
             EButton { objectName: "pinCurrentPage"; iconName: "pin"; text: root.translate(QT_TR_NOOP("Pin")); visible: !!root.selectedPage.id && !root.selectedPage.transient && root.mode !== "pins"; onClicked: root.openPins(root.selectedPage) }
         }
         RowLayout {
@@ -331,7 +331,7 @@ Rectangle {
                             ELabel { text: root.packageTitle(modelData); Layout.fillWidth: true; elide: Text.ElideRight; maximumLineCount: 1 }
                             RowLayout {
                                 Layout.fillWidth: true
-                                ELabel { text: root.statusFor(modelData); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
+                                ArkControls.Label { type: ArkControls.Label.SmallSubtle; text: root.statusFor(modelData); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
                                 EButton {
                                     iconName: modelData.activationNeedsRepair ? "refresh" : "power"
                                     text: modelData.activationNeedsRepair ? root.translate(QT_TR_NOOP("Repair")) : ""

@@ -1,7 +1,7 @@
 #include <QThread>
 #include "bridge.h"
 #include "ManagerI18n.h"
-#include "../xovi.h"
+#include "xovi-generated.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QQmlEngine>

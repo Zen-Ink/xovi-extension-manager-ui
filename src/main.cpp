@@ -1,6 +1,6 @@
 #include "bridge.h"
 #include "ManagerI18n.h"
-#include "../xovi.h"
+#include "xovi-generated.h"
 #include "../sdk/qrr-api.h"
 #include <QtQml>
 #include <QFile>
