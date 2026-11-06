@@ -1,4 +1,4 @@
-version 0.1.14
+version 0.1.15
 depends-on xovi-language:0.1.1
 depends-on xovi-message-broker:0.2.0
 depends-on qt-resource-rebuilder:0.4.0

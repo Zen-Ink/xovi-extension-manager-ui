@@ -18,7 +18,8 @@ namespace {
 struct Target { const char *buildId; uintptr_t returnVA, gotVA; uint32_t call; };
 constexpr Target targets[] = {
     {"6f4138dd626ea45d0f7f9d750537721a894d0562",0x212884,0x138a0a4,0xebf8e275}, // RM2 3.27.1.0
-    {"2f0554fb42208c3862a0ae5015e377aae6ce87b4",0x300440,0x1619304,0xebf68d4e} // RM2 3.29.1.0
+    {"2f0554fb42208c3862a0ae5015e377aae6ce87b4",0x300440,0x1619304,0xebf68d4e}, // RM2 3.29.1.0
+    {"291f7caeccc371b3f74beecb8f4c620ef291a645",0x2e678c,0x17bd564,0xebf732f8} // RM2 3.30.0.109
 };
 using Constructor = void *(*)(QObject *, QObject *);
 Constructor originalConstructor=nullptr;
