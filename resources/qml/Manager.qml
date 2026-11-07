@@ -333,7 +333,7 @@ Rectangle {
                             ELabel { text: root.packageTitle(modelData); Layout.fillWidth: true; elide: Text.ElideRight; maximumLineCount: 1 }
                             RowLayout {
                                 Layout.fillWidth: true
-                                ArkControls.Label { type: ArkControls.Label.SmallSubtle; text: root.statusFor(modelData); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
+                                ELabel { text: root.statusFor(modelData); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
                                 EButton {
                                     iconName: modelData.activationNeedsRepair ? "refresh" : "power"
                                     text: modelData.activationNeedsRepair ? root.translate(QT_TR_NOOP("Repair")) : ""

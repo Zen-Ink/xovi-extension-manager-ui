@@ -10,7 +10,7 @@ Rectangle {
     border.width: 3
     property int pageIndex: 0
     property string selectedKey: ""
-    readonly property int pageSize: Math.max(1, Math.floor((height - 340) / 260))
+    readonly property int pageSize: Math.max(1, Math.floor((height - 340) / 332))
     readonly property var entries: NotificationStore.entries
     readonly property int pageCount: Math.max(1, Math.ceil(entries.length / pageSize))
     readonly property int selectedIndex: entries.findIndex(function(entry) { return NotificationStore.key(entry) === root.selectedKey })
@@ -37,21 +37,37 @@ Rectangle {
             Repeater {
                 model: root.entries.slice(root.pageIndex * root.pageSize, (root.pageIndex + 1) * root.pageSize)
                 delegate: Rectangle {
+                    id: card
                     required property var modelData
                     objectName: "notificationListCard"
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 248
+                    Layout.preferredHeight: (modelData.actions || []).length ? 320 : 248
                     color: "white"; border.color: "black"; border.width: modelData.read ? 1 : 3
+                    MouseArea {
+                        objectName: "openNotificationDetails"
+                        anchors.fill: parent
+                        onClicked: { root.selectedKey = NotificationStore.key(modelData); NotificationStore.read(modelData) }
+                    }
                     ColumnLayout {
                         anchors.fill: parent; anchors.margins: 16; spacing: 8
                         ELabel { text: modelData.title; emphasized: !modelData.read; Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
                         ELabel { text: modelData.message || ""; Layout.fillWidth: true; Layout.fillHeight: true; maximumLineCount: 2; elide: Text.ElideRight }
                         NotificationProgress { visible: !!modelData.progress; progress: modelData.progress || null; Layout.fillWidth: true }
-                    }
-                    MouseArea {
-                        objectName: "openNotificationDetails"
-                        anchors.fill: parent
-                        onClicked: { root.selectedKey = NotificationStore.key(modelData); NotificationStore.read(modelData) }
+                        RowLayout {
+                            visible: (modelData.actions || []).length > 0
+                            Layout.fillWidth: true
+                            Repeater {
+                                model: modelData.actions || []
+                                delegate: EButton {
+                                    required property var modelData
+                                    objectName: "notificationCardAction_" + modelData.id
+                                    Layout.fillWidth: true
+                                    text: modelData.label
+                                    enabled: (card.modelData.pendingActionIds || []).indexOf(modelData.id) < 0
+                                    onClicked: NotificationStore.invoke(card.modelData, modelData.id)
+                                }
+                            }
+                        }
                     }
                 }
             }
