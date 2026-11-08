@@ -143,6 +143,13 @@ QVariantMap requestSettings(const QString &ownerId,const QString &pageId) {
 char *navigationReply(const QVariantMap &value) {
     return strdup(QJsonDocument::fromVariant(value).toJson(QJsonDocument::Compact).constData());
 }
+char *officialControlFailure(const QString &error) {
+    return strdup(QJsonDocument(QJsonObject{{"ok",false},{"error",error},
+        {"source","native-software-update"},{"enabled",QJsonValue::Null},{"forced",QJsonValue::Null},
+        {"retail",QJsonValue::Null},{"persistentEnabled",QJsonValue::Null},
+        {"unitFileState",QJsonValue::Null},{"readbackMatches",QJsonValue::Null}})
+        .toJson(QJsonDocument::Compact).constData());
+}
 void freeNavigationString(char *value) { std::free(value); }
 char *openSettingsNative(const char *ownerId,const char *pageId) {
     if (!ownerId || strnlen(ownerId,129)>128 || (pageId && strnlen(pageId,129)>128))
@@ -163,24 +170,21 @@ extern "C" char *xem_open_settings(const char *request) {
     return navigationReply(requestSettings(args.value("ownerId").toString(),args.value("pageId").toString("main")));
 }
 extern "C" char *xem_official_update_control(const char *request) {
-    if (!request || strnlen(request,1025)>1024) return navigationReply(uiFailure("invalid-request"));
+    if (!request || strnlen(request,1025)>1024) return officialControlFailure("invalid-request");
     const auto document=QJsonDocument::fromJson(QByteArray(request));
     const auto args=document.object();
     if (!document.isObject() || (args["action"]!="read" && args["action"]!="set") ||
         (args["action"]=="set" && !args["enabled"].isBool()))
-        return navigationReply(uiFailure("invalid-request"));
+        return officialControlFailure("invalid-request");
     auto *app=QCoreApplication::instance();
-    if (!app) return navigationReply(uiFailure("ui-not-ready"));
+    if (!app) return officialControlFailure("ui-not-ready");
     if (!officialNativeReady.load())
-        return strdup(QJsonDocument(QJsonObject{{"ok",false},{"error","official-update-object-unavailable"},
-            {"source","native-software-update"},{"enabled",QJsonValue::Null},{"forced",QJsonValue::Null},
-            {"retail",QJsonValue::Null},{"persistentEnabled",QJsonValue::Null},
-            {"unitFileState",QJsonValue::Null},{"readbackMatches",QJsonValue::Null}}).toJson(QJsonDocument::Compact).constData());
+        return officialControlFailure("official-update-object-unavailable");
     QJsonObject result;
     auto execute=[&] { result=controlOfficialUpdates(args); };
     if (QThread::currentThread()==app->thread()) execute();
     else if (!QMetaObject::invokeMethod(app,execute,Qt::BlockingQueuedConnection))
-        return navigationReply(uiFailure("ui-not-ready"));
+        return officialControlFailure("ui-not-ready");
     return strdup(QJsonDocument(result).toJson(QJsonDocument::Compact).constData());
 }
 bool ManagerNavigation::bindOfficialUpdates(QObject *enabled, QObject *retail) {
