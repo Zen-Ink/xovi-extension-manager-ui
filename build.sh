@@ -19,5 +19,5 @@ for target in "${targets[@]}"; do (
     mkdir -p "build/$target"
     python3 "$XOVI_REPO/util/xovigen.py" -o "build/$target/xovi.cpp" -H "build/$target/xovi-generated.h" -m "build/$target/manifest.json" --manifest-entry xovi-extension-manager-ui.so xovi-extension-manager-ui.xovi
     qmake -o "build/$target/Makefile" xovi-extension-manager-ui.pro CONFIG+=release
-    make -C "build/$target" -j"${JOBS:-4}"
+    make -C "build/$target" -j"${JOBS:-$(nproc)}"
 ); done
