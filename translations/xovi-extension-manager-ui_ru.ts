@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>Применено</translation></message>
+        <message><source>Apply</source><translation>Применить</translation></message>
+        <message><source>Applying</source><translation>Применение</translation></message>
+        <message><source>Unable to apply</source><translation>Не удалось применить</translation></message>
+        <message><source>Apply result unknown</source><translation>Результат неизвестен</translation></message>
         <message>
             <source>Warnings</source>
             <translation>Предупреждения</translation>

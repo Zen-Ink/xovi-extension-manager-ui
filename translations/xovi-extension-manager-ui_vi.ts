@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>Đã áp dụng</translation></message>
+        <message><source>Apply</source><translation>Áp dụng</translation></message>
+        <message><source>Applying</source><translation>Đang áp dụng</translation></message>
+        <message><source>Unable to apply</source><translation>Không thể áp dụng</translation></message>
+        <message><source>Apply result unknown</source><translation>Không rõ kết quả</translation></message>
         <message>
             <source>Warnings</source>
             <translation>Cảnh báo</translation>

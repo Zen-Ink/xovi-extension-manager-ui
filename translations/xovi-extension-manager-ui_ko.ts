@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>적용됨</translation></message>
+        <message><source>Apply</source><translation>적용</translation></message>
+        <message><source>Applying</source><translation>적용 중</translation></message>
+        <message><source>Unable to apply</source><translation>적용할 수 없음</translation></message>
+        <message><source>Apply result unknown</source><translation>적용 결과를 알 수 없음</translation></message>
         <message>
             <source>Warnings</source>
             <translation>경고</translation>

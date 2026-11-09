@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>लागू किया गया</translation></message>
+        <message><source>Apply</source><translation>लागू करें</translation></message>
+        <message><source>Applying</source><translation>लागू हो रहा है</translation></message>
+        <message><source>Unable to apply</source><translation>लागू नहीं हो सका</translation></message>
+        <message><source>Apply result unknown</source><translation>परिणाम अज्ञात है</translation></message>
         <message>
             <source>Warnings</source>
             <translation>चेतावनियाँ</translation>

@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>Aplicado</translation></message>
+        <message><source>Apply</source><translation>Aplicar</translation></message>
+        <message><source>Applying</source><translation>A aplicar</translation></message>
+        <message><source>Unable to apply</source><translation>Não foi possível aplicar</translation></message>
+        <message><source>Apply result unknown</source><translation>Resultado desconhecido</translation></message>
         <message>
             <source>Warnings</source>
             <translation>Avisos</translation>

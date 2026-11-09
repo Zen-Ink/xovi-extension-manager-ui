@@ -23,6 +23,12 @@ Rectangle {
     property var uiStates: ({})
     property string message: ""
     property string messageDetails: ""
+    property bool applyPending: false
+    property bool applyBusy: false
+    property bool injectionPending: false
+    property bool ownApply: false
+    property bool applyQueryBusy: false
+    property int applyChecks: 0
     property var injections: []
     property var injectionPolicy: ({})
     property var launchers: []
@@ -54,6 +60,34 @@ Rectangle {
     onFilterChanged: pageIndex = 0
     onPageCountChanged: pageIndex = Math.min(pageIndex, pageCount - 1)
     ManagerBridge { id: bridge }
+    Connections {
+        target: bridge
+        function onApplyExtensionsResult(status) {
+            root.applyBusy = status === "queued"
+            if (status !== "queued") root.ownApply = false
+            if (status === "queued") { root.applyChecks = 0; root.message = root.translate(QT_TR_NOOP("Applying")); applyObserver.start() }
+            else if (status === "rejected" || status === "unavailable") root.message = root.translate(QT_TR_NOOP("Unable to apply"))
+            else root.message = root.translate(QT_TR_NOOP("Apply result unknown"))
+        }
+        function onExtensionApplyStatus(status) {
+            root.applyQueryBusy = false
+            if (!root.ownApply) return
+            if (status === "queued" || status === "running") return
+            applyObserver.stop()
+            root.applyBusy = false
+            root.ownApply = false
+            if (status === "succeeded") { root.injectionPending = false; root.refresh(); root.message = root.translate(QT_TR_NOOP("Applied")) }
+            else if (status === "failed") { root.applyPending = true; root.message = root.translate(QT_TR_NOOP("Unable to apply")) }
+            else root.message = root.translate(QT_TR_NOOP("Apply result unknown"))
+        }
+    }
+    Timer {
+        id: applyObserver; interval: 2000; repeat: true
+        onTriggered: {
+            if (++root.applyChecks > 30) { stop(); root.applyBusy = false; root.ownApply = false; root.message = root.translate(QT_TR_NOOP("Apply result unknown")); return }
+            if (!root.applyQueryBusy) { root.applyQueryBusy = true; bridge.queryExtensionApply() }
+        }
+    }
     function translate(text) { bridge.uiLanguage; return bridge.translate("Manager", text) }
     function openSystemSettings(target) {
         var routes = {wifi: "wifi/window/network-select", language: "settings/window/language", account: "userfrontend/window/account-settings"}
@@ -76,6 +110,8 @@ Rectangle {
                 nextPackages.push({id:owner, name:page.title, type:"qml", enabled:true, effectiveEnabled:true, availableActions:[]})
         })
         if (JSON.stringify(packages) !== JSON.stringify(nextPackages)) packages = nextPackages
+        var restart = bridge.request("requiresRestart", {})
+        if (restart.ok) applyPending = !!restart.requiresRestart || injectionPending
         uiStates = settings.uiStates || ({})
         var status = bridge.request("injectionsGet", {})
         injections = status.results || []
@@ -295,6 +331,7 @@ Rectangle {
             visible: !root.pageOwnsChrome
             Layout.fillWidth: true
             ArkControls.Title { type: ArkControls.Title.Large; text: (root.selectedPage.id ? root.pageTitle(root.selectedPage) : root.translate(QT_TR_NOOP("Extensions"))); Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
+            EButton { objectName: "applyExtensions"; text: root.translate(QT_TR_NOOP("Apply")); visible: root.applyPending; enabled: !root.applyBusy; onClicked: { root.ownApply = true; root.applyBusy = true; bridge.applyExtensions() } }
             EButton { objectName: "pinCurrentPage"; iconName: "pin"; text: root.translate(QT_TR_NOOP("Pin")); visible: !!root.selectedPage.id && !root.selectedPage.transient && root.mode !== "pins"; onClicked: root.openPins(root.selectedPage) }
         }
         RowLayout {
@@ -454,6 +491,7 @@ Rectangle {
                         iconName: "power"; checked: desired; text: desired ? root.translate(QT_TR_NOOP("Disable")) : root.translate(QT_TR_NOOP("Enable"))
                         onClicked: {
                             var result = bridge.request("injectionsSet", {id:modelData.ownerId, injectionId:modelData.injectionId, enabled:!desired})
+                            if (result.ok && result.requiresRestart) { root.injectionPending = true; root.applyPending = true }
                             root.message = result.ok ? root.translate(QT_TR_NOOP("Restart xochitl to apply")) : root.operationError(result)
                             root.refresh()
                         }

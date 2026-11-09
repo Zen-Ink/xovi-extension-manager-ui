@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>تم التطبيق</translation></message>
+        <message><source>Apply</source><translation>تطبيق</translation></message>
+        <message><source>Applying</source><translation>جارٍ التطبيق</translation></message>
+        <message><source>Unable to apply</source><translation>تعذر التطبيق</translation></message>
+        <message><source>Apply result unknown</source><translation>نتيجة التطبيق غير معروفة</translation></message>
         <message>
             <source>Warnings</source>
             <translation>تحذيرات</translation>

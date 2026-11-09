@@ -25,10 +25,15 @@ public:
     Q_INVOKABLE QString entryTitle(const QVariantMap &entry);
     Q_INVOKABLE QString translate(const QString &context,const QString &source);
     Q_INVOKABLE QVariantMap request(const QString &command, const QVariantMap &args = {});
+    Q_INVOKABLE void applyExtensions();
+    Q_INVOKABLE void queryExtensionApply();
 signals:
     void languageChanged();
     void notificationsChanged();
+    void applyExtensionsResult(const QString &status);
+    void extensionApplyStatus(const QString &status);
 private:
+    void sendExtensionApplyRequest(bool query);
     uint64_t notificationSubscription_=0;
     const XemNotificationsApi *notificationApi_=nullptr;
 };

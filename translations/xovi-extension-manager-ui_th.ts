@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>ใช้แล้ว</translation></message>
+        <message><source>Apply</source><translation>ใช้</translation></message>
+        <message><source>Applying</source><translation>กำลังใช้</translation></message>
+        <message><source>Unable to apply</source><translation>ไม่สามารถใช้ได้</translation></message>
+        <message><source>Apply result unknown</source><translation>ไม่ทราบผลลัพธ์</translation></message>
         <message>
             <source>Warnings</source>
             <translation>คำเตือน</translation>

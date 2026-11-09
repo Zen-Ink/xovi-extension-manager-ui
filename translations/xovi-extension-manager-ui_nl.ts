@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>Toegepast</translation></message>
+        <message><source>Apply</source><translation>Toepassen</translation></message>
+        <message><source>Applying</source><translation>Toepassen</translation></message>
+        <message><source>Unable to apply</source><translation>Kan niet toepassen</translation></message>
+        <message><source>Apply result unknown</source><translation>Resultaat onbekend</translation></message>
         <message>
             <source>Warnings</source>
             <translation>Waarschuwingen</translation>

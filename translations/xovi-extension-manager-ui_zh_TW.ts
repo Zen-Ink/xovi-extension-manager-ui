@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>已套用</translation></message>
+        <message><source>Apply</source><translation>套用</translation></message>
+        <message><source>Applying</source><translation>正在套用</translation></message>
+        <message><source>Unable to apply</source><translation>無法套用</translation></message>
+        <message><source>Apply result unknown</source><translation>套用結果未知</translation></message>
         <message>
             <source>Warnings</source>
             <translation>警告</translation>

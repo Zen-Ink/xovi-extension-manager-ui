@@ -308,6 +308,11 @@
     </context>
     <context>
         <name>Manager</name>
+        <message><source>Applied</source><translation>適用済み</translation></message>
+        <message><source>Apply</source><translation>適用</translation></message>
+        <message><source>Applying</source><translation>適用中</translation></message>
+        <message><source>Unable to apply</source><translation>適用できません</translation></message>
+        <message><source>Apply result unknown</source><translation>適用結果は不明です</translation></message>
         <message>
             <source>Warnings</source>
             <translation>警告</translation>

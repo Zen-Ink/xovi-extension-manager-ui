@@ -14,6 +14,7 @@
 #include <atomic>
 #include <QJsonArray>
 #include <QFile>
+#include <QLocalSocket>
 #include <QUuid>
 #include <QRegularExpression>
 #include <QMetaProperty>
@@ -21,6 +22,47 @@
 #include <QDBusMessage>
 #include <QDBusReply>
 #include "../sdk/xovi-navigation.h"
+
+void ManagerBridge::applyExtensions() { sendExtensionApplyRequest(false); }
+void ManagerBridge::queryExtensionApply() { sendExtensionApplyRequest(true); }
+void ManagerBridge::sendExtensionApplyRequest(bool query) {
+    const QString discovery = qEnvironmentVariable("NFJ_UPDATE_DISCOVERY", "/run/nfj-update/discovery.json");
+    QFile file(discovery);
+    if (!file.open(QIODevice::ReadOnly)) { if (query) emit extensionApplyStatus("unknown"); else emit applyExtensionsResult("unavailable"); return; }
+    const auto document = QJsonDocument::fromJson(file.readAll());
+    const auto socketPath = document.object().value("socketPath").toString();
+    if (!document.isObject() || !socketPath.startsWith('/')) { if (query) emit extensionApplyStatus("unknown"); else emit applyExtensionsResult("unavailable"); return; }
+    auto *socket = new QLocalSocket(this);
+    auto *timer = new QTimer(socket);
+    timer->setSingleShot(true);
+    const QString requestId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    auto finish = [this, socket, query](const QString &status) {
+        if (socket->property("finished").toBool()) return;
+        socket->setProperty("finished", true);
+        if (query) emit extensionApplyStatus(status);
+        else emit applyExtensionsResult(status);
+        socket->deleteLater();
+    };
+    connect(timer, &QTimer::timeout, socket, [finish] { finish("unknown"); });
+    connect(socket, &QLocalSocket::errorOccurred, socket, [finish](QLocalSocket::LocalSocketError) { finish("unknown"); });
+    connect(socket, &QLocalSocket::disconnected, socket, [finish] { finish("unknown"); });
+    connect(socket, &QLocalSocket::connected, socket, [socket, requestId, query] {
+        const QJsonObject request{{"schemaVersion", 2}, {"requestId", requestId}, {"action", query ? "query_extension_apply" : "apply_extensions"}};
+        socket->write(QJsonDocument(request).toJson(QJsonDocument::Compact) + '\n');
+    });
+    connect(socket, &QLocalSocket::readyRead, socket, [socket, requestId, finish, query] {
+        if (!socket->canReadLine()) return;
+        const auto response = QJsonDocument::fromJson(socket->readLine());
+        const auto object = response.object();
+        if (!response.isObject() || object.value("requestId").toString() != requestId || object.value("schemaVersion").toInt() != 2) { finish("unknown"); return; }
+        if (!object.value("ok").toBool()) { finish("rejected"); return; }
+        const QString status = object.value("result").toObject().value("status").toString();
+        if (query) finish(status);
+        else finish(status == "queued" ? "queued" : "unknown");
+    });
+    timer->start(5000);
+    socket->connectToServer(socketPath);
+}
 
 // UI-local errors exist even when the manager service is unavailable.
 static QVariantMap uiFailure(const QString &code, const QString &detail={}) {
