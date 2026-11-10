@@ -43,6 +43,7 @@ AFFECT /qml/device/view/settings/Settings.qml
             Connections {
                 target: ManagerNavigation
                 function onOpenRequested(owner, page, source) {
+                    if (source === "account") return
                     if (root.visible) xoviManagerLoader.openEntry(owner, page, source)
                 }
                 function onPageOpenRequested(page) {
@@ -121,6 +122,7 @@ AFFECT /qml/device/view/main/MainView.qml
                     } else xoviPinnedManager.active = true
                 }
                 function onOpenRequested(owner, pageId, source) {
+                    if (source === "account") return
                     if (ManagerNavigation.settingsHostVisible()) return
                     xoviPinnedManager.directPage = null
                     xoviPinnedManager.ownerId = owner

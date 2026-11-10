@@ -1,0 +1,40 @@
+VERSION 3.27.x.x
+VERSION 3.28.x.x
+VERSION 3.29.x.x
+VERSION 3.30.0.109
+
+AFFECT /qt/qml/xofm/modules/userfrontend/qml/AccountSettingsWindow.qml
+    IMPORT org.xovi.Manager 1.0
+    TRAVERSE BaseView#root
+        LOCATE AFTER ALL
+        INSERT {
+            Loader {
+                id: accountManagerLoader
+                anchors.fill: parent
+                z: 2000
+                active: false
+                source: "qrc:/xovi/manager/Manager.qml"
+                property string ownerId: ""
+                property string pageId: ""
+                onLoaded: {
+                    item.systemNavigator = root.windowNavigator
+                    item.initialOwner = ownerId
+                    item.entryPoint = "account"
+                    item.openEntry(ownerId, pageId, true)
+                }
+            }
+            Connections {
+                target: ManagerNavigation
+                function onOpenRequested(owner, page, source) {
+                    if (source !== "account" || !root.visible) return
+                    accountManagerLoader.ownerId = owner
+                    accountManagerLoader.pageId = page
+                    if (accountManagerLoader.item) {
+                        accountManagerLoader.item.refresh()
+                        accountManagerLoader.item.openEntry(owner, page, true)
+                    } else accountManagerLoader.active = true
+                }
+            }
+        }
+    END TRAVERSE
+END AFFECT

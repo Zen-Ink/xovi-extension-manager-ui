@@ -155,7 +155,7 @@ QJsonObject controlOfficialUpdates(const QJsonObject &request) {
     else if (!persisted) state["error"]="official-update-persistence-unverified";
     return state;
 }
-QVariantMap requestSettings(const QString &ownerId,const QString &pageId) {
+QVariantMap requestSettings(const QString &ownerId,const QString &pageId,const QString &source = "plugin") {
     static const QRegularExpression idPattern(QStringLiteral("^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$"));
     if (!idPattern.match(ownerId).hasMatch() || !idPattern.match(pageId).hasMatch())
         return uiFailure("invalid-id");
@@ -177,8 +177,8 @@ QVariantMap requestSettings(const QString &ownerId,const QString &pageId) {
         }
         if (!found) return uiFailure("page-not-found");
     }
-    QMetaObject::invokeMethod(app,[resolvedOwner,pageId] {
-        if (navigationReady.load()) ManagerNavigation::shared()->openSettings(resolvedOwner,pageId,"plugin");
+    QMetaObject::invokeMethod(app,[resolvedOwner,pageId,source] {
+        if (navigationReady.load()) ManagerNavigation::shared()->openSettings(resolvedOwner,pageId,source);
     },Qt::QueuedConnection);
     return {{"ok",true},{"accepted",true},{"state","queued"},{"ownerId",resolvedOwner},{"pageId",pageId}};
 }
@@ -255,7 +255,7 @@ void ManagerNavigation::registerLauncher(QObject *owner) {
     launchers_.insert(owner);navigationReady.store(true);
     connect(owner,&QObject::destroyed,this,[this,owner] { launchers_.remove(owner);navigationReady.store(!launchers_.isEmpty()); });
 }
-QVariantMap ManagerNavigation::requestOpenSettings(const QString &ownerId,const QString &pageId) { return requestSettings(ownerId,pageId); }
+QVariantMap ManagerNavigation::requestOpenSettings(const QString &ownerId,const QString &pageId,const QString &source) { return requestSettings(ownerId,pageId,source); }
 QVariantMap SettingsContext::openSettings(const QString &ownerId,const QString &pageId) { return requestSettings(ownerId,pageId); }
 void ManagerNavigation::registerSettingsHost(QQuickItem *host) {
     if(!host || settingsHosts_.contains(host)) return;

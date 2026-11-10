@@ -165,7 +165,7 @@ public:
     Q_INVOKABLE QVariantMap openPage(const QVariantMap &page);
     QQmlComponent *pageComponent(const QString &token) const;
 
-    Q_INVOKABLE QVariantMap requestOpenSettings(const QString &ownerId,const QString &pageId="main");
+    Q_INVOKABLE QVariantMap requestOpenSettings(const QString &ownerId,const QString &pageId="main",const QString &source="plugin");
     Q_INVOKABLE void openSettings(const QString &id,const QString &pageId,const QString &source="shortcut") {
         // Leave the caller's signal/Loader destruction stack before opening.
         QTimer::singleShot(0,this,[this,id,pageId,source] { emit openRequested(id,pageId,source); });
