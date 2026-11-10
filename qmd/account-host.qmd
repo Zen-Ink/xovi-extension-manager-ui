@@ -5,6 +5,7 @@ VERSION 3.30.0.109
 VERSION 3.30.0.108
 
 AFFECT /qt/qml/xofm/modules/userfrontend/qml/AccountSettingsWindow.qml
+    IMPORT QtQuick 2.15
     IMPORT org.xovi.Manager 1.0
     TRAVERSE BaseView#root
         LOCATE AFTER ALL
