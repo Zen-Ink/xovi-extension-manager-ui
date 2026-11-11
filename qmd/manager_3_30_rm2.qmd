@@ -1,5 +1,4 @@
-VERSION 3.30.0.109
-VERSION 3.30.0.108
+VERSION 3.30.x.x
 
 AFFECT /qt/qml/xofm/modules/softwareupdate/qml/SoftwareSettingsWindow.qml
     IMPORT org.xovi.Manager 1.0

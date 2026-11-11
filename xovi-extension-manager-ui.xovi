@@ -1,4 +1,4 @@
-version 0.1.22
+version 0.1.23
 depends-on xovi-language:0.1.1
 depends-on xovi-message-broker:0.2.0
 depends-on qt-resource-rebuilder:0.4.0
@@ -18,7 +18,7 @@ global-meta
     description = "On-demand native and QML extension settings"
     requiresXovi = ">=0.3.0"
     requiresExtensions = "xovi-language:>=0.1.1,xovi-extension-manager:>=0.3.0,qt-resource-rebuilder:>=0.4.0,xovi-message-broker:>=0.2.0"
-    xochitlVersions = "3.27.x.x,3.28.x.x,3.29.x.x,3.30.0.108,3.30.0.109"
+    xochitlVersions = "3.27.x.x,3.28.x.x,3.29.x.x,3.30.x.x"
     entry = "xovi-extension-manager-ui.so"
 end
 

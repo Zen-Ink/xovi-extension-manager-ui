@@ -26,11 +26,7 @@ extern "C" void _xovi_construct() {
         if(version.startsWith("3.27.")) { patch=r$settingsEntry327;length=sizeof(r$settingsEntry327)-1; }
         else if(version.startsWith("3.28.")) { patch=r$settingsEntry328;length=sizeof(r$settingsEntry328)-1; }
         else if(version.startsWith("3.29.")) { patch=r$settingsEntry329;length=sizeof(r$settingsEntry329)-1; }
-#if defined(__arm__)
-        else if(version == "3.30.0.109") { patch=r$settingsEntry330Rm2;length=sizeof(r$settingsEntry330Rm2)-1; }
-#elif defined(__aarch64__)
-        else if(version == "3.30.0.108") { patch=r$settingsEntry330Rm2;length=sizeof(r$settingsEntry330Rm2)-1; }
-#endif
+        else if(version.startsWith("3.30.")) { patch=r$settingsEntry330Rm2;length=sizeof(r$settingsEntry330Rm2)-1; }
         if(!patch) { qWarning("[extension-manager-ui] unsupported IMG_VERSION");return; }
         char *result=api->registerPatch("xovi-extension-manager-ui","settings-entry",patch,length);
         if(result) {qInfo("[extension-manager-ui] %s",result);api->freeString(result);}
@@ -39,7 +35,7 @@ extern "C" void _xovi_construct() {
 #if defined(__aarch64__)
         // The orientation-sensor module is absent on RM2 ARM firmware.
         // Keep its shortcut control in the sensor-equipped architecture's patch.
-        if(version.startsWith("3.29.") || version == "3.30.0.108") {
+        if(version.startsWith("3.29.") || version.startsWith("3.30.")) {
             result=api->registerPatch("xovi-extension-manager-ui","orientation-sensor",r$orientationSensor329,sizeof(r$orientationSensor329)-1);
             if(result) {qInfo("[extension-manager-ui] %s",result);api->freeString(result);}
         }
