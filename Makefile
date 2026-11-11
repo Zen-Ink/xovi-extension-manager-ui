@@ -1,7 +1,7 @@
 ARCH ?= arm32
 NFJ_PLUGIN_DELIVERY_TOOL ?= $(abspath ../../nfj/install.remarkable.nfj/scripts/publish-native-plugin.py)
 JOBS ?= $(shell nproc)
-XOVI_REPO ?= $(abspath ../external/xovi)
+XOVI_REPO ?= $(abspath ../../xovi)
 PACKAGE_ROOT ?= $(abspath ../build/packages)
 
 .PHONY: package install-repo

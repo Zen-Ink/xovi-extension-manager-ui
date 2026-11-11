@@ -2,7 +2,7 @@
 set -eo pipefail
 project=$(cd -- "$(dirname -- "$0")" && pwd)
 workspace=$(cd "$project/.." && pwd)
-export XOVI_REPO=${XOVI_REPO:-$project/xovi}
+export XOVI_REPO=${XOVI_REPO:-$project/../../xovi}
 toolchains=${TOOLCHAIN_ROOT:-/run/media/lurenmax/Data/work/4_workspace/remarkable/toolchian}
 case "${1:-all}" in
     all) targets=(aarch64 arm32);;
