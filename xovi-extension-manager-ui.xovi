@@ -13,6 +13,7 @@ resource orientationSensor329:qmd/manager_3_29_orientation_sensor.qmd
 resource settingsEntry330Rm2:qmd/manager_3_30_rm2.qmd
 resource accountHost:qmd/account-host.qmd
 global-meta
+    firmwareGate = true
     id = "xovi-extension-manager-ui"
     name = "Extension Manager UI"
     description = "On-demand native and QML extension settings"
